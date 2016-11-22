@@ -66,10 +66,14 @@ function New-CAUser{
         Create a subject specific user account
     .DESCRIPTION
         Create a user account for controlled assessment work.
-        Making managing access and logon times much easier.
+        By Making the account subject specific admins can delegate managing access and logon times as there's no other subjects use of the account to impact.
     .EXAMPLE
         get-aduser example | new-causer -SubjectCode Hi -intake 2016
         Explanation of what the example does
+    .NOTES
+        Development improvements:
+        - Could put the users in a better subject-specific OU Path. Currently manually done.
+        - Could guess the intake year from the OU path of the sipplied identity
     #>
     [cmdletbinding()]
     Param(
@@ -119,12 +123,31 @@ function New-CAUser{
 }
 
 function New-CAClassMember {
+    <#
+    .SYNOPSIS
+        Add user to CA Class Group
+    .DESCRIPTION
+        Long description
+    .NOTES
+        General notes
+    #>
     Param(
         # Class code of the ad group to get e.g. 11D_hi1
         $ClassCode
+        , # User intake year
+        [Parameter(Mandatory=$true)]
+        [ValidateScript({
+            $year = (get-date).year
+            if( ($PSItem -le $year) -and ($PSItem -ge $year-5) ){
+                return $true
+            } else {
+                Throw "$psitem is not an active intake year."
+            }
+        })]
+        [string]$Intake
     )
     $class = Get-ClassProperty $ClassCode -ErrorAction Stop
-    Get-ADGroupMember $class.Code | get-aduser | new-causer -SubjectCode $class.id -intake 2012
+    Get-ADGroupMember $class.Code | get-aduser | new-causer -SubjectCode $class.id -intake $Intake
 }
 
 function Reset-AllADPasswords{
