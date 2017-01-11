@@ -1,10 +1,17 @@
-﻿$SimsReport = import-csv N:\StudentClassMemberships.csv
+﻿function setupModule{
+    $Datasource = Get-ChildItem -Filter "ClassMembers-*.csv" -Path $env:TEMP | Sort-Object -Property CreationTimeUtc | Select-Object -Last 1
+    if($Datasource){
+        $SimsReport = import-csv $Datasource.fullname
 
-$ClassMembers = $SimsReport | where Class -NotLike "CLS *"
-$FormMembers  = $SimsReport | where Class    -Like "CLS *"
+        $script:ClassMembers = $SimsReport | Where-Object Class -NotLike "CLS *"
+        $script:FormMembers  = $SimsReport | Where-Object Class    -Like "CLS *"
 
-$ClassList = $ClassMembers | Select -Unique -ExpandProperty class
-$FormList  = $FormMembers  | Select -Unique -ExpandProperty class
+        $script:ClassList = $ClassMembers | Select-Object -Unique -ExpandProperty class
+        $script:FormList  = $FormMembers  | Select-Object -Unique -ExpandProperty class
+    } else {
+        Write-Error "Run 'New-Report' for data to sync user accounts"
+    }
+}
 
 function escapeName{
     [OutputType([string])]
@@ -22,7 +29,10 @@ function escapeName{
     }
 }
 
+setupModule
+
 . "$PSScriptRoot\Form.ps1"
 . "$PSScriptRoot\Class.ps1"
 . "$PSScriptRoot\Adno.ps1"
 . "$PSScriptRoot\User.ps1"
+. "$PSScriptRoot\Sims.ps1"

@@ -1,4 +1,5 @@
 ﻿function Get-Class{
+    setupModule -ErrorAction Stop
     $ClassList | escapeName
 }
 function Get-ClassProperty{
@@ -139,6 +140,9 @@ function Get-ClassMember{
                    ValueFromPipelineByPropertyName=$true)]
         $Class
     )
+    Begin{
+        setupModule -ErrorAction Stop
+    }
     Process{
         $AdmissionNumber = $ClassMembers | where { (escapeName $_.Class) -eq $Class} | select -ExpandProperty Adno
 

@@ -1,4 +1,5 @@
 ﻿function Get-Form{
+    setupModule -ErrorAction Stop
     $FormList | escapeName
 }
 function Get-FormMember{
@@ -8,6 +9,9 @@ function Get-FormMember{
         [Alias('Class')]
         $Form
     )
+    Begin{
+        setupModule -ErrorAction Stop
+    }
     Process{
         $AdmissionNumber = $FormMembers | where { (escapeName $_.Class) -eq $form} | select -ExpandProperty Adno
 
@@ -42,7 +46,7 @@ function Test-Form{
             Compare-Object (Get-Form) $ADList.name  -IncludeEqual
         }
     }
-    
+
 }
 function Test-FormMember{
     Param(
@@ -81,7 +85,7 @@ function Test-FormMember{
             Compare-Object (Get-FormMember $form) $ADList  -IncludeEqual -Property EmployeeNumber
         }
     }
-    
+
 }
 
 function New-Form{
