@@ -31,19 +31,28 @@
 }
 
 function Test-EmployeeNumber{
+    Param(
+        [switch]
+        $PassThru
+    )
     $intake = 2016
     $userFilter = @{
             Filter = '(enabled -eq $true) -and (employeeNumber -notlike "*")'
             SearchBase = "OU=$intake,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL"
             Properties = 'employeeNumber'
         }
-    $Numbered = Get-ADUser @userFilter |
+    $users = Get-ADUser @userFilter
+    $Numbered = $users |
         Measure-Object |
         Select-Object -ExpandProperty Count
 
-    if($Numbered -eq 0){
-        "success"
+    if(-not $PassThru){
+        if($Numbered -eq 0){
+            "success"
+        } else {
+            "incorrect: $numbered"
+        }
     } else {
-        "incorrect: $numbered"
+        Write-Output $users
     }
 }
