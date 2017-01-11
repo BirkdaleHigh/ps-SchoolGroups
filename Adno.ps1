@@ -34,8 +34,19 @@ function Test-EmployeeNumber{
     Param(
         [switch]
         $PassThru
+
+        , # Search all users in an intake year
+        [Parameter()]
+        [ValidateScript({
+            $year = (get-date).year
+            if( ($PSItem -le $year) -and ($PSItem -ge $year-5) ){
+                return $true
+            } else {
+                Throw "$psitem is not an active intake year."
+            }
+        })]
+        [string]$intake = 2016
     )
-    $intake = 2016
     $userFilter = @{
             Filter = '(enabled -eq $true) -and (employeeNumber -notlike "*")'
             SearchBase = "OU=$intake,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL"
