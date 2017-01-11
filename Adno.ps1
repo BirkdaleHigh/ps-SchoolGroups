@@ -32,9 +32,14 @@
 
 function Test-EmployeeNumber{
     $intake = 2016
-    $Numbered = Get-ADUser -Filter '(enabled -eq $true) -and (employeeNumber -notlike "*")' -SearchBase "OU=$intake,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL" -Properties employeeNumber |
-        measure |
-        select -ExpandProperty count
+    $userFilter = @{
+            Filter = '(enabled -eq $true) -and (employeeNumber -notlike "*")'
+            SearchBase = "OU=$intake,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL"
+            Properties = 'employeeNumber'
+        }
+    $Numbered = Get-ADUser @userFilter |
+        Measure-Object |
+        Select-Object -ExpandProperty Count
 
     if($Numbered -eq 0){
         "success"
