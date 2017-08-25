@@ -1,36 +1,4 @@
-﻿function Update-EmployeeNumber{
-    [CmdletBinding(DefaultParameterSetName='Default')]
-    Param(
-        # Users to update the emplyeeNumber of
-        [Parameter(Mandatory=$true,
-                   ValueFromPipelineByPropertyName=$true)]
-        [SimsUser[]]$Identity
-
-        , # Search all users in an intake year
-        [Parameter(ParameterSetName='Search')]
-        [ValidateScript({
-            $year = (get-date).year
-            if( ($PSItem -le $year) -and ($PSItem -ge $year-5) ){
-                return $true
-            } else {
-                Throw "$psitem is not an active intake year."
-            }
-        })]
-        [string]$intake = 2016
-    )
-
-    get-aduser -SearchBase "OU=$intake,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL" -Filter 'enabled -eq $true' |
-        foreach{
-            $ad = $_
-            $Identity | foreach {
-                if(($ad.givenname -eq $psitem.givenname) -and ($ad.surname -eq $psitem.surname)){
-                    $ad | set-aduser -EmployeeNumber $psitem.adno
-                }
-            }
-    }
-}
-
-function Test-EmployeeNumber{
+﻿function Get-MissingEmployeeNumber{
     Param(
         [switch]
         $PassThru
@@ -53,11 +21,11 @@ function Test-EmployeeNumber{
             Properties = 'employeeNumber'
         }
     $users = Get-ADUser @userFilter
-    $Numbered = $users |
-        Measure-Object |
-        Select-Object -ExpandProperty Count
 
     if(-not $PassThru){
+        $Numbered = $users |
+            Measure-Object |
+            Select-Object -ExpandProperty Count
         if($Numbered -eq 0){
             "success"
         } else {
@@ -65,5 +33,46 @@ function Test-EmployeeNumber{
         }
     } else {
         Write-Output $users
+    }
+}
+
+function Search-MISAdmissionNumber{
+    [CmdletBinding()]
+    Param(
+        # Active Directory account of user
+        [Parameter(Mandatory,ValueFromPipeline,ValueFromPipelineByPropertyName)]
+        [Microsoft.ActiveDirectory.Management.ADUser[]]$Identity
+
+        ,# MIS dataset of users to search
+        $Searchbase = $script:SimsReport
+    )
+    Begin {
+        write-verbose "Searching $($SearchBase | measure | select -expandproperty count) records."
+    }
+    Process{
+        $Identity | Foreach {
+            $ad = $_
+            $Searchbase | Foreach {
+                    if( ($ad.givenname -eq $psitem.Forename) -and ($ad.surname -eq $psitem.'Legal Surname') ){
+                        #$ad.EmployeeNumber = $psitem.adno
+                        write-output $ad
+                    }
+                }
+            }
+    }
+}
+
+function Update-EmployeeNumber {
+    [CmdletBinding()]
+    Param(
+        # Active Directory account of user
+        [Parameter(Mandatory,ValueFromPipeline,ValueFromPipelineByPropertyName)]
+        [ValidateScript({$psitem.PSobject.Properties.Name -contains "EmployeeNumber"})]
+        [Microsoft.ActiveDirectory.Management.ADUser[]]$Identity
+    )
+    Process{
+        $identity | foreach {
+            set-aduser -identity $identity.DistinguishedName -EmployeeNumber $identity.EmployeeNumber -PassThru
+        }
     }
 }
