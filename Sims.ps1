@@ -13,12 +13,14 @@ function Import-SimsUser {
                    Position=0)]
         $user
     )
-    $obj = [SimsUser]@{
-        'givenname' = $user.Forename;
-        'surname'   = $user."Legal Surname";
-        'adno'      = $user.adno
+    Process {
+        $obj = [SimsUser]@{
+            'givenname' = $user.Forename;
+            'surname'   = $user."Legal Surname";
+            'adno'      = $user.adno
         }
-    Write-Output $obj
+        Write-Output $obj
+    }
 }
 
 function New-Report{
