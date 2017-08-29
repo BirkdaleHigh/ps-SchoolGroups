@@ -40,3 +40,10 @@ function Start-UpdateAllEmplyeeNumber {
     Get-MissingEmployeeNumber -intake 2014 -PassThru | Search-MISAdmissionNumber | Update-EmployeeNumber
     Get-MissingEmployeeNumber -intake 2013 -PassThru | Search-MISAdmissionNumber | Update-EmployeeNumber
 }
+
+Function Import-NewIntake{
+    $csv = import-csv (new-report -name "Import to Active Directory" -Destination ($env:TEMP + "\intake-" + (get-date).ToFileTimeUtc() + ".csv") )
+    $ad = $csv | import-simsUser
+    $ad | New-SchoolUser
+}
+
