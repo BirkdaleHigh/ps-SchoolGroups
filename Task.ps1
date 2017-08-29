@@ -47,3 +47,4 @@ Function Import-NewIntake{
     $ad | New-SchoolUser
 }
 
+Export-ModuleMember -function @()
