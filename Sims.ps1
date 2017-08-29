@@ -1,7 +1,9 @@
 class SimsUser {
     [string]$Givenname
     [string]$Surname
-    [string]$ADNO
+    [string]$EmployeeNumber
+    [string]$DisplayName
+    [string]$Intake
 }
 
 function Import-SimsUser {
@@ -15,9 +17,11 @@ function Import-SimsUser {
     )
     Process {
         $obj = [SimsUser]@{
-            'givenname' = $user.Forename;
-            'surname'   = $user."Legal Surname";
-            'adno'      = $user.adno
+            'Givenname'      = $user.'Legal Forename';
+            'Surname'        = $user.'Legal Surname';
+            'EmployeeNumber' = $user.adno;
+            'DisplayName'    = "$($user.'Preferred Forename') $($user.'Preferred Surname')";
+            'Intake' = $user.'Year of Entry';
         }
         Write-Output $obj
     }

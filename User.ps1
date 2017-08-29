@@ -3,51 +3,52 @@
     Param(
         [Parameter(Mandatory=$true,
                    ValueFromPipelineByPropertyName=$true)]
-        [string]$firstname,
+        [string]$Givenname,
 
         [Parameter(Mandatory=$true,
                    ValueFromPipelineByPropertyName=$true)]
-        [string]$surname,
+        [string]$Surname,
 
         [Parameter(Mandatory=$true,
-                   ValueFromPipelineByPropertyName=$true)]
+        ValueFromPipelineByPropertyName=$true)]
         [ValidatePattern('^00\d{4}$')]
         [string]$EmployeeNumber,
+
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
+        [string]$DisplayName = "$Givenname $Surname",
 
         [Parameter(Mandatory=$true,
                    Position=0,
                    ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true)]
         [ValidateScript({
-            $year = (get-date).year
-            if( ($PSItem -le $year) -and ($PSItem -ge $year-5) ){
+            [int]$year = (get-date).year
+            [int]$test = $PSItem
+            if( ($test -le $year) -and ($test -ge $year-5) ){
                 return $true
             } else {
-                Throw "$psitem is not an active intake year."
+                Throw "$test is not an active intake year."
             }
         })]
         [string]$intake
     )
     Process{
         [string]$year = $intake
-        $username = ($year.Remove(0,2) + $surname + $firstname[0])
+        $username = ($year.Remove(0,2) + $surname + $Givenname[0])
 
         if($username.length -gt 20){
             Throw "$username is over 20 characters"
         }
 
-        if(get-aduser $username -ErrorAction SilentlyContinue) {
-            Throw "$username already exists"
-        }
-
-        if(Get-ADUser -Filter {EmployeeNumber -eq $EmployeeNumber}){
-           Throw "$employeeNumber already exists"
+        if(Get-ADUser -Filter {EmployeeNumber -eq $EmployeeNumber} -Outvariable duplicatenumber){
+           Throw "$employeeNumber already exists as $duplicatenumber"
         }
 
         new-aduser -EmployeeNumber $EmployeeNumber `
-            -GivenName $firstname `
+            -GivenName $Givenname `
             -Surname $surname `
             -name $username `
+            -DisplayName $DisplayName `
             -Path "OU=$year,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL" `
             -ProfilePath "\\bhs-fs01\profiles$\Students\$year Students" `
             -HomeDirectory "\\bhs-fs01\home$\Students\$year Students\$username" `
