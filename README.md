@@ -37,6 +37,9 @@ Manage school group and user life cycle (creation, membership, removal) actions 
 Active Directory | Sims.Net | Description
 ---------------- | -------- | -----------
 EmployeeNumber | adno | Admission Number
+GivenName | Legal Forename
 Surname | Legal Surname
-givenname | Legal Forename
-Display Name | Preferred Forename Preferred Surname | Concatenation of names for pronunciation
+DisplayName | Preferred Forename Preferred Surname | Concatenation of names for pronunciation
+Intake | Year of Entry | Entry year the pupil is within the school
+
+Name filtering, Names with characters; ` ' <space> ` will have those characters stripped out for compatibility purposes on other systems.
