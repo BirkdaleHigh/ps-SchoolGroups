@@ -151,7 +151,7 @@ function New-CAClassMember {
     Get-ADGroupMember $class.Code | get-aduser | new-causer -SubjectCode $class.id -intake $Intake
 }
 
-function Reset-AllADPasswords{
+function Reset-ADPassword{
     <#
     .SYNOPSIS
         Reset all AD Passwords
@@ -170,29 +170,25 @@ function Reset-AllADPasswords{
                    Position=0,
                    ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true)]
-        [ValidateScript({
-            $year = (get-date).year
-            if( ($PSItem -le $year) -and ($PSItem -ge $year-5) ){
-                return $true
-            } else {
-                Throw "$psitem is not an active intake year."
-            }
-        })]
-        [string]$Intake
+        [Microsoft.ActiveDirectory.Management.ADUser[]]$Identity
     )
     Process{
-        if ($pscmdlet.ShouldProcess("All users in $intake year", "Reset all passwords")){
-            get-aduser -Filter * -SearchBase "OU=$Intake,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL" -properties employeeNumber |
+        if ($pscmdlet.ShouldProcess($Identity.DistinguishedName, "Reset Account Password")){
+            get-aduser -Identity $identity.DistinguishedName -properties employeeNumber |
                 foreach {
-                    $password = "rst" + (get-random -Minimum 10000 -Maximum 99999)
+                    $password = "reset" + (get-random -Minimum 100 -Maximum 999)
 
                     Set-ADAccountPassword -Identity $psitem.samAccountName -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $password -Force)
-                    Set-aduser -Identity $psitem.samAccountName -ChangePasswordAtNextLogon $true
+                    Set-aduser -Identity $psitem.samAccountName -ChangePasswordAtLogon $true
                     Enable-ADAccount -Identity $psitem.samAccountName
 
                     $psitem |
-                        select givenname,surname,SamAccountName,employeeNumber |
-                        Add-member -MemberType NoteProperty -Name password -Value $password -PassThru
+                        Select-Object EmployeeNumber,@{
+                            name='Forname';expression={ $_.Givenname }
+                        },@{
+                            name='Username';expression={ $_.SamAccountName }
+                        } |
+                        Add-member -MemberType NoteProperty -Name Password -Value $password -PassThru
                 }
         }
     }

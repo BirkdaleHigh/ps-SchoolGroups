@@ -47,4 +47,40 @@ Function Import-NewIntake{
     $ad | New-SchoolUser
 }
 
+function Reset-AllIntakePassword{
+    <#
+    .SYNOPSIS
+        Reset all AD Passwords for an intake year
+    .DESCRIPTION
+        Generate passwords to reset accounts with and output those to pipe to a file.
+
+        Internally uses Reset-ADPassword on each account from the AD OU.
+    .EXAMPLE
+        C:\PS> Reset-AllIntakePassword -Intake 2016 | export-csv -NoTypeInformation ".\2016-users.csv"
+        Reset all AD account passwords for the 2016 intake year OU and create CSV file of the accounts information including passwords.
+    #>
+    [CmdletBinding(SupportsShouldProcess=$true,
+                   ConfirmImpact='High')]
+    Param(
+        [Parameter(Mandatory=$true,
+                   Position=0,
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true)]
+        [ValidateScript({
+            $year = (get-date).year
+            if( ($PSItem -le $year) -and ($PSItem -ge $year-5) ){
+                return $true
+            } else {
+                Throw "$psitem is not an active intake year."
+            }
+        })]
+        [string]$Intake
+    )
+    Process {
+        if ($pscmdlet.ShouldProcess("All users in $intake year", "Reset AD password")){
+            Get-ADUser -SearchBase "OU=$intake,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL" | Reset-ADPassword
+        }
+    }
+}
+
 Export-ModuleMember -function @()
