@@ -19,7 +19,7 @@ function Import-SimsUser {
         $obj = [SimsUser]@{
             'Givenname'      = $user.'Legal Forename';
             'Surname'        = $user.'Legal Surname';
-            'EmployeeNumber' = $user.adno;
+            'EmployeeNumber' = ([int]$user.adno).toString('000000');
             'DisplayName'    = "$($user.'Preferred Forename') $($user.'Preferred Surname')";
             'Intake' = $user.'Year of Entry';
         }
