@@ -30,7 +30,10 @@
                 Throw "$test is not an active intake year."
             }
         })]
-        [string]$intake
+        [string]$intake,
+
+        # Choose to create a user folder
+        [switch]$NoHome
     )
     Process{
         [string]$year = $intake
@@ -44,20 +47,33 @@
            Throw "$employeeNumber already exists as $duplicatenumber"
         }
 
-        new-aduser -EmployeeNumber $EmployeeNumber `
-            -GivenName $Givenname `
-            -Surname $surname `
-            -name $username `
-            -DisplayName $DisplayName `
-            -Path "OU=$year,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL" `
-            -ProfilePath "\\bhs-fs01\profiles$\Students\$year Students" `
-            -HomeDirectory "\\bhs-fs01\home$\Students\$year Students\$username" `
-            -HomeDrive 'N:' `
-            -ScriptPath 'kix32 Students.kix' `
-            -UserPrincipalName "$username@BHS.INTERNAL" `
-            -AccountPassword (ConvertTo-SecureString -AsPlainText -Force "password") `
-            -ChangePasswordAtLogon $true `
-            -Enabled $true
+        $user = @{
+            EmployeeNumber = $EmployeeNumber
+            GivenName = $Givenname
+            Surname = $surname
+            name = $username
+            DisplayName = $DisplayName
+            Path = "OU=$year,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL"
+            ProfilePath = "\\bhs-fs01\profiles$\Students\$year Students"
+            HomeDirectory = "\\bhs-fs01\home$\Students\$year Students\$username"
+            HomeDrive = 'N:'
+            ScriptPath = 'kix32 Students.kix'
+            UserPrincipalName = "$username@BHS.INTERNAL"
+            AccountPassword = ConvertTo-SecureString -AsPlainText -Force "password"
+            ChangePasswordAtLogon = $true
+            Enabled = $true
+        }
+
+        new-aduser @user
+
+        $account = Get-ADUser $username -properties HomeDirectory,EmployeeNumber
+
+        if(-not $NoHome){
+            $account | New-HomeDirectory > $null
+        }
+
+        Write-Output $account
+
     }
 }
 
