@@ -215,7 +215,7 @@ function Find-UnchangedPassword {
         })]
         [string]$Intake
     )
-    get-aduser -Filter '{enabled -eq $True}' -SearchBase "OU=$Intake,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL" -properties employeeNumber, passwordlastSet |
+    get-aduser -Filter {enabled -eq $True} -SearchBase "OU=$Intake,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL" -properties employeeNumber, passwordlastSet |
         where 'passwordLastSet' -eq $null
 }
 
