@@ -215,37 +215,67 @@ function Find-UnchangedPassword {
         where 'passwordLastSet' -eq $null
 }
 
+function New-HomeDirectory{
+    param(
+        [Parameter(Mandatory=$true,
+                   Position=0,
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true)]
+        [ValidateScript({$psitem.PSobject.Properties.Name -contains "HomeDirectory"})]
+        [Microsoft.ActiveDirectory.Management.ADUser[]]$Identity
+    )
+    Process{
+        $Identity | where { (Test-HomeDirectory $psitem).result -eq $false } | foreach {
+            $location = New-Item -ItemType Directory -Path $psitem.homeDirectory
+
+            $Propagation = [System.Security.AccessControl.PropagationFlags]::None
+            $Type =[System.Security.AccessControl.AccessControlType]::Allow
+            $Principal = New-Object System.Security.Principal.NTAccount($psitem.samAccountName)
+
+            $Entry = New-Object System.Security.AccessControl.FileSystemAccessRule($Principal, 'FullControl', 'ContainerInherit,ObjectInherit', $Propagation, $Type)
+
+            $ACL = Get-ACL $location
+            $ACL.AddAccessRule($Entry)
+
+            Set-ACL $psitem.homeDirectory $ACL
+
+            Write-Output $location
+        }
+    }
+}
+
 function Test-HomeDirectory{
     [CmdletBinding(DefaultParameterSetName='Default')]
     param(
-        [Parameter(ParameterSetName='Default',
-                   Mandatory=$true,
+        [Parameter(Mandatory=$true,
                    Position=0,
                    ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true)]
-        $Identity,
-        [Parameter(ParameterSetName='Year Group',
-                   Mandatory=$true,
-                   Position=0,
-                   ValueFromPipeline=$true,
-                   ValueFromPipelineByPropertyName=$true)]
-        [ValidateScript({
-            $year = (get-date).year
-            if( ($PSItem -le $year) -and ($PSItem -ge $year-5) ){
-                return $true
-            } else {
-                Throw "$psitem is not an active intake year."
-            }
-        })]
-        [string]$intake
+        [ValidateScript({$psitem.PSobject.Properties.Name -contains "HomeDirectory"})]
+        [Microsoft.ActiveDirectory.Management.ADUser[]]
+        $Identity
     )
-
-    $user = Get-ADUser -identity $Identity -Properties HomeDirectory
-    if($intake){
-        $user = get-aduser -SearchBase "OU=$intake,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL" -Filter * -Properties HomeDirectory
+    Process{
+        $identity | foreach {
+            try {
+                $test = (Test-Path $psitem.homeDirectory -ErrorAction stop) -or $false
+            } catch [System.UnauthorizedAccessException] {
+                $test = 'AccessDenied'
+            } catch {
+                Write-Error $error[0]
+            }
+            [pscustomobject]@{
+                Path = $psitem.homeDirectory
+                Result = $test
+            }
+        }
     }
-    $user | where {
-        (test-path $_.homeDirectory) -eq $false
-    }
+    # $user = Get-ADUser -identity $Identity -Properties HomeDirectory
+    # if($intake){
+    #     $user = get-aduser -SearchBase "OU=$intake,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL" -Filter * -Properties HomeDirectory
+    # }
+    # $user | where {
+    #     (test-path $_.homeDirectory) -eq $false
+    # }
 
 }
