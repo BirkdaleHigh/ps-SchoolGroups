@@ -1,0 +1,25 @@
+TOPIC
+    about_SchoolGroups
+
+SHORT DESCRIPTION
+    This module is for managing the life cycle of groups and users in the school organization with respect to the MIS in use.
+
+LONG DESCRIPTION
+    User accounts require a 1:1 mapping from MIS to AD in order to make groups and communication between IT and staff effective.
+    This module contains a number of cmdlets to aid in the following goals
+
+    1. Assign each AD record an employeeNumber from the unique record in the MIS
+    2. Create new users with a consistently specified format and requirements
+    3. Cmdlets to ensure emplyeeNumber remains unique
+    4. Create security groups based on group assignment from a MIS
+
+    This module contains a pre-defined report that can be imported into sims.net as a shortcut to correctly format the data.
+
+EXAMPLES
+    Examples of how to use the module or how the subject feature works in practice.
+
+KEYWORDS
+    Terms or titles on which you might expect your users to search for the information in this topic.
+
+SEE ALSO
+    about_SchoolGroups_Tasks describes procedures included with the module.

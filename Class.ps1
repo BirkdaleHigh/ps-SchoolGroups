@@ -38,6 +38,18 @@ function Get-ClassProperty{
     Cs Computer Science 8M2_Cs 8                M2
     Cs Computer Science 8M6_Cs 8                M6
     Cs Computer Science 8M4_Cs 8                M4
+.EXAMPLE
+    Get-Class | Get-ClassProperty | Sort id | select id,fullname -Unique
+
+    Get a list of all class codes that exist in use and their full name.
+
+    ID  FullName
+    --  --------
+    Ar  Art
+    Bi  Biology
+    Bt  BTEC Sport
+    Ch  Chemistry
+    ...
 #>
     [OutputType([psObject])]
     Param(
