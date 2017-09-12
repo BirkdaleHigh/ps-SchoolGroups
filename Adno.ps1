@@ -53,8 +53,8 @@ function Search-MISAdmissionNumber{
         $Identity | Foreach {
             $ad = $_
             $Searchbase | Foreach {
-                    if( ($ad.givenname -eq $psitem.Forename) -and ($ad.surname -eq $psitem.'Legal Surname') ){
-                        #$ad.EmployeeNumber = $psitem.adno
+                    if( ($ad.givenname -eq $psitem.Forename) -and ($ad.surname -eq $psitem.'Legal Surname'.replace("`'",'').replace(" ",'-')) ){
+                        $ad.EmployeeNumber = $psitem.adno
                         write-output $ad
                     }
                 }

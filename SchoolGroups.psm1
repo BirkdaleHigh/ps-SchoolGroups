@@ -25,7 +25,7 @@ function escapeName{
         if($name.StartsWith('CLS ')){
             return $name.replace('CLS ', '')
         }
-        return $name.replace('/','_')
+        return $name.replace('/','_').replace('+','t')
     }
 }
 
