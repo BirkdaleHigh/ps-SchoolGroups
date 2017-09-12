@@ -157,6 +157,28 @@ function Get-ClassMember{
         }
     }
 }
+function Get-ClassADMember{
+    <#
+    .SYNOPSIS
+        Show the counts of users found within each form group
+    .DESCRIPTION
+        To quickly check the state of the AD membership, use this command to find all the total users in each group.
+
+        Check these numbers yourself against sims, use Test-FormMember to investigate specific forms further.
+
+    .EXAMPLE
+    #>
+    Param(
+        # Accepts a wildcard filter.
+        [string]$Name = '*'
+    )
+    Get-ADGroup -SearchBase "OU=Class Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL" -Filter {Name -like $Name} |
+        foreach {
+            Get-ADGroupMember -Identity $psitem |
+                add-member -PassThru -MemberType 'NoteProperty' -Name 'ClassName' -value $psitem -force
+        } |
+        Group-Object -Property 'ClassName'
+}
 
 function Test-ClassMember{
     Param(
