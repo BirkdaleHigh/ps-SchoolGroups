@@ -1,4 +1,13 @@
-﻿function Get-Class{
+﻿class Class {
+    [string]$Code
+    [string]$ID
+    [int]$Year
+    [string]$Set
+    [string]$FullName
+    [int]$ClassNumber
+}
+
+function Get-Class{
     setupModule -ErrorAction Stop
     $ClassList | escapeName
 }
@@ -51,7 +60,7 @@ function Get-ClassProperty{
     Ch  Chemistry
     ...
 #>
-    [OutputType([psObject])]
+    [OutputType([class])]
     Param(
         # Class code from from sims, replace '/' replaced with '_'
         [parameter(Mandatory=$true,
@@ -104,7 +113,7 @@ function Get-ClassProperty{
             FullName    = $fullname[$ID]
             ClassNumber = [regex]::match($name, '(\d)?$').Groups[1].Value
         }
-        New-Object PSObject -Property $Output
+        New-Object Class -Property $Output
     }
 }
 
