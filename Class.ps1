@@ -235,7 +235,7 @@ function Sync-ClassMember{
 
         $remove = $psitem | Test-ClassMember -Filter AD
         if($remove){
-            Remove-ADGroupMember -Identity $psitem -Members $remove -WhatIf
+            Remove-ADGroupMember -Identity $psitem -Members $remove -confirm:$false
         }
     }
 }
