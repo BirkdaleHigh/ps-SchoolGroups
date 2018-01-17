@@ -248,6 +248,8 @@ function Sync-ClassMember{
     For each class in the report add the members found only in this list
     For each class in the report remove any members only found in the AD
 #>
+[cmdletbinding()]
+Param()
     Get-Class | foreach {
         $add = $psitem | Test-ClassMember -Filter List
         if($add){
@@ -258,6 +260,7 @@ function Sync-ClassMember{
         if($remove){
             Remove-ADGroupMember -Identity $psitem -Members $remove -confirm:$false
         }
+        Write-Verbose "Class: $psitem Added: $($add.length) Remove: $($remove.length)"
     }
 }
 

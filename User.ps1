@@ -32,7 +32,7 @@
         })]
         [string]$intake,
 
-        # Choose to create a user folder
+        # Block creation of user folder
         [switch]$NoHome
     )
     Process{
@@ -54,7 +54,7 @@
             name = $username
             DisplayName = $DisplayName
             Path = "OU=$year,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL"
-            ProfilePath = "\\bhs-fs01\profiles$\Students\$year Students"
+            ProfilePath = "\\bhs-fs01\profiles$\Students\profile"
             HomeDirectory = "\\bhs-fs01\home$\Students\$year Students\$username"
             HomeDrive = 'N:'
             ScriptPath = 'kix32 Students.kix'
@@ -200,7 +200,7 @@ function Reset-ADPassword{
 
                     $psitem |
                         Select-Object EmployeeNumber,@{
-                            name='Forname';expression={ $_.Givenname }
+                            name='Forename';expression={ $_.Givenname }
                         },@{
                             name='Username';expression={ $_.SamAccountName }
                         } |

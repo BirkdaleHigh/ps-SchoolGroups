@@ -41,6 +41,25 @@ function Start-UpdateAllEmplyeeNumber {
     Get-MissingEmployeeNumber -intake 2013 -PassThru | Search-MISAdmissionNumber | Update-EmployeeNumber
 }
 
+function start-classSync(){
+    <#
+    .SYNOPSIS
+        Short description
+    .DESCRIPTION
+        Long description
+    .EXAMPLE
+        PS C:\> <example usage>
+        Explanation of what the example does
+    .INPUTS
+        Inputs (if any)
+    .OUTPUTS
+        None
+    .NOTES
+        General notes
+    #>
+    Sync-Class
+}
+
 Function Import-NewIntake{
     $csv = import-csv (new-report -name "Import to Active Directory" -Destination ($env:TEMP + "\intake-" + (get-date).ToFileTimeUtc() + ".csv") )
     $ad = $csv | import-simsUser
