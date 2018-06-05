@@ -83,23 +83,26 @@ function New-CADirectory{
         Alternatively they can be used as the home directory when the user is a member of DisableHomeFolder.
         The policy "Set - Drive N - CA Home Path" can target a drive map to this path
     .INPUTS
-        Microsoft.ActiveDirectory.Management.ADUser
+        Microsoft.ActiveDirectory.Management.ADUser, String
     .OUTPUTS
         System.IO.DirectoryInfo
     .EXAMPLE
         Get-ADGroupMember 10c_im1 | New-CADirectory -SubjectName iMedia -intake 2014
         Will create in this case 26 folders of the usernames from the 10c_Im1 gorup membership at
-        the path \\bhs-fs01\CA\Intake 2014\iMedia\%username% with fullControl folder permissions by each username.
+        the path \\filesahre\Intake 2014\iMedia\%username% with fullControl folder permissions by each username.
     .NOTES
         TODO: Validate subject name against Get-ClassProperty for consistancy.
     #>
-    [cmdletbinding()]
+    [cmdletbinding(SupportsShouldProcess=$true)]
     Param(
         [Parameter(Mandatory=$true,
                    Position=0,
                    ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true)]
-        [Microsoft.ActiveDirectory.Management.ADUser]$Identity,
+        [ValidateNotNullOrEmpty()]
+        [Alias("Name")]
+        [string[]]
+        $SamAccountName,
 
         # Full subject name e.g. 'Computer Science'
         [Parameter(Mandatory=$true,
@@ -137,10 +140,16 @@ function New-CADirectory{
     }
     Process {
         # Create user folder for each username, assigning onwership permission.
-        $Identity | foreach-Object {
+        foreach($user in $SamAccountName){
             # TODO: Handle an existing directory with a warning
             try {
-                $Directory = new-item -ItemType Directory -Path (Join-Path $PathSubject $psitem.samAccountName) -ErrorAction stop
+                Write-Verbose "Create Path for $(Join-Path $PathSubject $user)"
+                if ($pscmdlet.ShouldProcess($(Join-Path $PathSubject $user), "Create Directory")){
+                    $Directory = new-item -ItemType Directory -Path (Join-Path $PathSubject $user) -ErrorAction stop
+                } else {
+                    # Exit loop as WhatIf doesn't create a folder to set ACL's on
+                    return
+                }
             } catch [System.IO.IOException] {
                 Write-Warning $psitem.exception.message
                 return
@@ -151,8 +160,8 @@ function New-CADirectory{
             }
             $item = get-acl $Directory
 
-            $Principal = New-Object System.Security.Principal.NTAccount($psitem.samAccountName)
             $Entry = New-Object System.Security.AccessControl.FileSystemAccessRule($Principal, 'FullControl', 'ContainerInherit,ObjectInherit', $Propagation, $Type)
+            $Principal = New-Object System.Security.Principal.NTAccount($user)
             $item.AddAccessRule($Entry)
             Set-ACL $item.path $item
             Get-Item $item.path
