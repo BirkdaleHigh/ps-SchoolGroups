@@ -182,6 +182,21 @@ function Reset-ADPassword{
     .DESCRIPTION
         Generate passwords to reset accounts with and output those to pipe to a file.
     .EXAMPLE
+        C:\PS> Reset-ADPassword -Identity test01
+        Generate a new password for test01 account, enable the account, Require password changed at logon and warn if user will be unable to.
+
+        Confirm
+        Are you sure you want to perform this action?
+        Performing the operation "Reset Account Password" on target "CN=Test01,OU=Guests,OU=...".
+        [Y] Yes  [A] Yes to All  [N] No  [L] No to All  [S] Suspend  [?] Help (default is "Y"): y
+        WARNING: 'PasswordNeverExpires' for Test01 is set to true. The account will not be required to change the password at next logon.
+
+        EmployeeNumber :
+        Forename       : Test01
+        Surname        :
+        Username       : Test01
+        Password       : reset195
+    .EXAMPLE
         C:\PS> Reset-AllADPasswords -Intake 2016 | export-csv -NoTypeInformation ".\2016-users.csv"
         Reset all AD account passwords for the 2016 intake year OU and create CSV file of the accounts information including passwords.
     .NOTES
@@ -196,25 +211,45 @@ function Reset-ADPassword{
                    ValueFromPipelineByPropertyName=$true)]
         [Microsoft.ActiveDirectory.Management.ADUser[]]$Identity
     )
+    Begin {
+        $passwordNeverExpiresException = "'PasswordNeverExpires' for this account is set to true. The account will not be required to change the password at next logon."
+    }
     Process{
-        if ($pscmdlet.ShouldProcess($Identity.DistinguishedName, "Reset Account Password")){
-            get-aduser -Identity $identity.DistinguishedName -properties employeeNumber |
-                foreach {
-                    $password = "reset" + (get-random -Minimum 100 -Maximum 999)
-
-                    Set-ADAccountPassword -Identity $psitem.samAccountName -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $password -Force)
-                    Set-aduser -Identity $psitem.samAccountName -ChangePasswordAtLogon $true
-                    Enable-ADAccount -Identity $psitem.samAccountName
-
-                    $psitem |
-                        Select-Object EmployeeNumber,@{
-                            name='Forename';expression={ $_.Givenname }
-                        },@{
-                            name='Username';expression={ $_.SamAccountName }
-                        } |
-                        Add-member -MemberType NoteProperty -Name Password -Value $password -PassThru
+        $resetList = $Identity | get-aduser -properties employeeNumber
+        foreach ($user in $resetlist) {
+            $password = "reset" + (get-random -Minimum 100 -Maximum 999)
+                if ($pscmdlet.ShouldProcess($user, "Reset Account Password")){
+                    Set-ADAccountPassword -Identity $user.samAccountName -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $password -Force)
+                    Enable-ADAccount -Identity $user.samAccountName
+                    try {
+                        Set-aduser -Identity $user.samAccountName -ChangePasswordAtLogon $true -ErrorAction Stop
+                    } catch {
+                        if($psitem.Exception.message -eq $passwordNeverExpiresException){
+                            Write-Warning $passwordNeverExpiresException.replace('this account', $user.samAccountName)
+                        } else {
+                            throw
+                        }
+                    }
                 }
-        }
+            }
+        $resetList |
+            Select-Object @(
+                @{
+                    name='AdmissionNumber';
+                    expression={ $_.EmployeeNumber }
+                }
+                @{
+                    name='Forename';
+                    expression={ $_.Givenname }
+                }
+                'Surname'
+                @{
+                    name='Username';
+                    expression={ $_.SamAccountName }
+                }
+            ) |
+            Add-member -MemberType NoteProperty -Name Password -Value $password -PassThru |
+            Write-Output
     }
 }
 
