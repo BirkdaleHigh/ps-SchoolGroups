@@ -21,15 +21,7 @@
                    Position=0,
                    ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true)]
-        [ValidateScript({
-            [int]$year = (get-date).year
-            [int]$test = $PSItem
-            if( ($test -le $year) -and ($test -ge $year-5) ){
-                return $true
-            } else {
-                Throw "$test is not an active intake year."
-            }
-        })]
+        [ValidateScript({ValidateIntake $psitem})]
         [string]$intake,
 
         # Block creation of user folder
@@ -119,14 +111,7 @@ function New-CADirectory{
         [Parameter(Mandatory=$true,
                    Position=1,
                    ValueFromPipelineByPropertyName=$true)]
-        [ValidateScript({
-            $year = (get-date).year
-            if( ($PSItem -le $year) -and ($PSItem -ge $year-5) ){
-                return $true
-            } else {
-                Throw "$psitem is not an active intake year."
-            }
-        })]
+        [ValidateScript({ValidateIntake $psitem})]
         [string]$intake
     )
     Begin {
@@ -229,14 +214,7 @@ function Find-UnchangedPassword {
                    Position=0,
                    ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true)]
-        [ValidateScript({
-            $year = (get-date).year
-            if( ($PSItem -le $year) -and ($PSItem -ge $year-5) ){
-                return $true
-            } else {
-                Throw "$psitem is not an active intake year."
-            }
-        })]
+        [ValidateScript({ValidateIntake $psitem})]
         [string]$Intake
     )
     get-aduser -Filter {enabled -eq $True} -SearchBase "OU=$Intake,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL" -properties employeeNumber, passwordlastSet |

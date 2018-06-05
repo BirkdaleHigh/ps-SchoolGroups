@@ -85,14 +85,7 @@ function Reset-AllIntakePassword{
                    Position=0,
                    ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true)]
-        [ValidateScript({
-            $year = (get-date).year
-            if( ($PSItem -le $year) -and ($PSItem -ge $year-5) ){
-                return $true
-            } else {
-                Throw "$psitem is not an active intake year."
-            }
-        })]
+        [ValidateScript({ValidateIntake $psitem})]
         [string]$Intake
     )
     Process {

@@ -29,6 +29,16 @@ function escapeName{
     }
 }
 
+function ValidateIntake {
+    [int]$year = (get-date).year
+    [int]$test = $PSItem
+    if( ($test -le $year) -and ($test -ge $year-5) ){
+        return $true
+    } else {
+        Throw "$test is not an active intake year."
+    }
+}
+
 setupModule
 
 . "$PSScriptRoot\Form.ps1"

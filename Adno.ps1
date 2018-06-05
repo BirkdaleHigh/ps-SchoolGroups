@@ -5,14 +5,7 @@
 
         , # Search all users in an intake year
         [Parameter()]
-        [ValidateScript({
-            $year = (get-date).year
-            if( ($PSItem -le $year) -and ($PSItem -ge $year-5) ){
-                return $true
-            } else {
-                Throw "$psitem is not an active intake year."
-            }
-        })]
+        [ValidateScript({ValidateIntake $psitem})]
         [string]$intake = 2016
     )
     $userFilter = @{
