@@ -124,11 +124,13 @@ function New-CADirectory{
 
         # Validate intake path exists or to be created
         if(-not (Test-Path $PathRoot)){
-            Write-Warning "Mising $PathRoot. Ensure AccessCAShared has read/execute to access this folder only"
+            Write-Error "Missing $PathRoot"
+            Write-Warning "Ensure AccessCAShared has read/execute to access this folder only for later mapping"
             $invalidRoot = $true
         }
         if(-not (Test-Path $PathSubject)){
-            Write-Warning "Mising $PathSubject. Ensure desired CA_Intake_Subject group has read/execute to access this folder only"
+            Write-Error "Missing $PathSubject"
+            Write-Warning "Ensure desired CA_Intake_Subject group has read/execute to access this folder only for later mapping"
             $invalidsubject = $true
         }
         if($invalidRoot -and -$invalidSubject){
@@ -160,8 +162,8 @@ function New-CADirectory{
             }
             $item = get-acl $Directory
 
-            $Entry = New-Object System.Security.AccessControl.FileSystemAccessRule($Principal, 'FullControl', 'ContainerInherit,ObjectInherit', $Propagation, $Type)
             $Principal = New-Object System.Security.Principal.NTAccount($user)
+            $Entry = New-Object System.Security.AccessControl.FileSystemAccessRule($Principal, 'Modify', 'ContainerInherit,ObjectInherit', $Propagation, $Type)
             $item.AddAccessRule($Entry)
             Set-ACL $item.path $item
             Get-Item $item.path
