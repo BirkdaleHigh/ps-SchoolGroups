@@ -3,8 +3,8 @@
     if($Datasource){
         $script:SimsReport = import-csv $Datasource.fullname
 
-        $script:ClassMembers = $SimsReport | Where-Object Class -NotLike "CLS *"
-        $script:FormMembers  = $SimsReport | Where-Object Class    -Like "CLS *"
+        $script:ClassMembers = $SimsReport | Where-Object Class -NotLike "CLS *" | Where {-not [string]::IsNullOrEmpty($psitem.class)}
+        $script:FormMembers  = $SimsReport | Where-Object Class    -Like "CLS *" | Where {-not [string]::IsNullOrEmpty($psitem.class)}
 
         $script:ClassList = $ClassMembers | Select-Object -Unique -ExpandProperty class
         $script:FormList  = $FormMembers  | Select-Object -Unique -ExpandProperty class
@@ -18,6 +18,7 @@ function escapeName{
     Param(
         [parameter(Mandatory=$true,
                    ValueFromPipeline=$true)]
+        [ValidateNotNullOrEmpty()]
         [string]
         $name
     )
