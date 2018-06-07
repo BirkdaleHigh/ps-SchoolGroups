@@ -228,7 +228,7 @@ function Test-ClassMember{
         [string]
         $Filter = 'Both'
     )
-    $ADList = Get-ADGroupMember -Identity $Class | get-aduser -Properties EmployeeNumber
+    $ADList = get-aduser -Properties EmployeeNumber -LDAPFilter "(&(objectClass=user)(memberof=CN=$Class,OU=Class Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL))"
 
     if($ADList -eq $null){
         Write-Warning "No members found in $Class from the AD"
