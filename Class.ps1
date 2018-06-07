@@ -180,11 +180,11 @@ function Get-ClassMember{
         setupModule -ErrorAction Stop
     }
     Process{
-        $AdmissionNumber = $ClassMembers | where { (escapeName $_.Class) -eq $Class} | select -ExpandProperty Adno
+        $AdmissionNumber = $ClassMembers | where-object { (escapeName $_.Class) -eq $Class} | select-object -ExpandProperty Adno
 
-        $AdmissionNumber | foreach {
-            get-aduser -Filter {EmployeeNumber -eq $psitem} -Properties EmployeeNumber
-        }
+        $filter = "(&(objectClass=user)(|(employeenumber={0})))" -f ($AdmissionNumber -join ')(employeenumber=')
+        Write-Verbose $filter
+        get-aduser -Properties EmployeeNumber -LDAPFilter $filter
     }
 }
 function Get-ClassADMember{
