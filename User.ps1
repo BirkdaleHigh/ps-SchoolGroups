@@ -332,6 +332,7 @@ function Test-HomeDirectory{
 
 }
 
+Set-Alias Get-OrgUser Get-SchoolUser -Description "Alias to a name that is short to type for auto-completion"
 function Get-SchoolUser {
     <#
     .SYNOPSIS
