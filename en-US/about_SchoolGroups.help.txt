@@ -10,7 +10,7 @@ LONG DESCRIPTION
 
     1. Assign each AD record an employeeNumber from the unique record in the MIS
     2. Create new users with a consistently specified format and requirements
-    3. Cmdlets to ensure emplyeeNumber remains unique
+    3. Cmdlets to ensure employeeNumber remains unique
     4. Create security groups based on group assignment from a MIS
 
     This module contains a pre-defined report that can be imported into sims.net as a shortcut to correctly format the data.

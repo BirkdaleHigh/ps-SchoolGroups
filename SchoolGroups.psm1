@@ -39,6 +39,8 @@ function ValidateIntake {
     }
 }
 
+# TODO: Function that replaces SideIndicator property with 2 booleans for AD and MIS
+
 setupModule
 
 . "$PSScriptRoot\Form.ps1"
