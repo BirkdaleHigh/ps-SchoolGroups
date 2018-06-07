@@ -145,6 +145,15 @@ function Test-Class{
 }
 
 function New-Class{
+    <#
+    .SYNOPSIS
+        Wrap New-ADGroup to create a class group in AD
+    .DESCRIPTION
+        Place the class groups in a specific OU path.
+        Group needs to be universal in order to later get assigned an email address as a security group.
+    .OUTPUTS
+        Microsoft.ActiveDirectory.Management.ADGroup
+    #>
     Param(
         [parameter(Mandatory=$true,
                    ValueFromPipeline=$true)]
@@ -152,7 +161,7 @@ function New-Class{
         $name
     )
     Process{
-        New-ADGroup -GroupScope Global -GroupCategory Security -Name $name -Path 'OU=Class Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL' -PassThru
+        New-ADGroup -GroupScope Universal -GroupCategory Security -Name $name -Path 'OU=Class Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL' -PassThru
     }
 }
 
@@ -241,16 +250,22 @@ function Test-ClassMember{
 }
 
 function Sync-ClassMember{
-<#
-.Synopsis
-    Make the AD group members match the provided list.
-.DESCRIPTION
-    For each class in the report add the members found only in this list
-    For each class in the report remove any members only found in the AD
-#>
-[cmdletbinding()]
-Param()
-    Get-Class | foreach {
+    <#
+    .Synopsis
+        Make the AD group members match the provided MIS list.
+    .DESCRIPTION
+        For each class in the report add the members found only in this list
+        For each class in the report remove any members only found in the AD
+    #>
+    [cmdletbinding()]
+    Param(
+        # Choose Classes to Syncronize
+        [Parameter(ValueFromPipeline,ValueFromPipelineByPropertyName)]
+        [ValidateNotNullOrEmpty()]
+        [string[]]
+        $Class = (Get-Class)
+    )
+    $Class | ForEach-Object {
         $add = $psitem | Test-ClassMember -Filter List
         if($add){
             Add-ADGroupMember -Identity $psitem -Members $add > $null
@@ -260,7 +275,7 @@ Param()
         if($remove){
             Remove-ADGroupMember -Identity $psitem -Members $remove -confirm:$false
         }
-        Write-Verbose "Class: $psitem Added: $($add.length) Remove: $($remove.length)"
+        Write-Verbose "Class: $psitem has in MIS: $($add.length) and remove: $($remove.length) only found in AD"
     }
 }
 
