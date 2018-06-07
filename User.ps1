@@ -377,6 +377,19 @@ function Get-SchoolUser {
         ben* would actully return 19 users to account for benjamin etc.
 
         Count    : 5
+    .EXAMPLE
+        PS C:\> Get-SchoolUser -EmployeeNumber 001122
+        Get the exact user account name from the number. The leading zeros are not required.
+        You will get an error if there are multiple results found.
+
+        GivenName         : Student
+        Surname           : Orgname
+        SamAccountName    : student
+        DistinguishedName : CN=Student Orgname,OU=Test,OU=ORG,DC=ORG,DC=INTERNAL
+        Enabled           : True
+        HomeDirectory     : \\org-server01\files\students\Test\student
+        EmployeeNumber    : 001122
+        EmailAddress      : student@example.com
     .OUTPUTS
         Microsoft.ActiveDirectory.Management.ADUser
     .NOTES
@@ -400,6 +413,14 @@ function Get-SchoolUser {
         [Parameter(Position=0, Mandatory, ParameterSetName='Specific', ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [string[]]
         $SamAccountName
+
+        , # Admission/Employee Number
+        [Parameter(Position=0, Mandatory, ParameterSetName='Get1', ValueFromPipelineByPropertyName, ValueFromPipeline)]
+        [ValidateLength(1,6)]
+        [ValidatePattern('^\d+$')]
+        [Alias("AdmissionNumber","Adno")]
+        [string[]]
+        $EmployeeNumber
     )
     Begin{
         $props = @(
@@ -429,6 +450,17 @@ function Get-SchoolUser {
                 Get-ADUser -LDAPfilter $queryString -properties $props |
                     Select-Object -Property $outputFields |
                     Write-Output
+            }
+            'Get1' {
+                $queryString = "(&(objectClass=user)(employeenumber=$( $EmployeeNumber.padLeft(6,'0') )))"
+                Write-Verbose "LDAP Query String: $queryString"
+                $output = Get-ADUser -LDAPfilter $queryString -properties $props |
+                    Select-Object -Property $outputFields
+                if($output.length -gt 1){
+                    Write-Error "Multiple Users found with the same EmplyeeNumber field, please correct this."
+                }
+                Write-Verbose ("Found {0} User(s)" -f $output.length)
+                Write-Output $output
             }
         }
 
