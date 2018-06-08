@@ -69,7 +69,7 @@ function Get-ClassProperty{
         [ValidatePattern('^1?[01789][a-zA-Z\d]+_[a-zA-Z]+\d?$')]
         [Alias('Code')]
         [string[]]
-        $name
+        $Name
     )
     Begin{
         $fullName = @{
@@ -105,15 +105,17 @@ function Get-ClassProperty{
         }
     }
     Process{
-        $Output = @{
-            Code        = $name[0]
-            ID          = $ID = [regex]::match($name, '_([a-zA-Z]+)').Groups[1].Value
-            Year        = [regex]::match($name, '^(1?[01789])').Groups[1].Value #also bounds check this to 7-11
-            Set         = [regex]::match($name,  '1?[01789]([a-zA-Z\d]+)_.*').Groups[1].Value
-            FullName    = $fullname[$ID]
-            ClassNumber = [regex]::match($name, '(\d)?$').Groups[1].Value
+        foreach($item in $Name){
+            $Output = @{
+                Code        = $item
+                ID          = $ID = [regex]::match($item, '_([a-zA-Z]+)').Groups[1].Value
+                Year        = [regex]::match($item, '^(1?[01789])').Groups[1].Value #also bounds check this to 7-11
+                Set         = [regex]::match($item,  '1?[01789]([a-zA-Z\d]+)_.*').Groups[1].Value
+                FullName    = $fullname[$ID]
+                ClassNumber = [regex]::match($item, '(\d)?$').Groups[1].Value
+            }
+            New-Object Class -Property $Output
         }
-        New-Object Class -Property $Output
     }
 }
 
