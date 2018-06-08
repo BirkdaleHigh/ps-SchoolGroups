@@ -1,5 +1,5 @@
 ﻿# School Groups
-Manage school group and user life cycle (creation, membership, removal) actions common in the school. Uses the "EmployeeNumber" field from Active Directory to reference the school "Admission Number" from the MIS as a unique ID.
+Manage school group and user life cycle (creation, find, update, removal) actions common in the school. The "EmployeeNumber" field from Active Directory to reference the school "Admission Number" from the MIS as a unique ID.
 
 ## Features
 - Sync your users active directory field `EmployeeNumber` with MIS `AdmissionNumber` record per student
@@ -17,6 +17,8 @@ Manage school group and user life cycle (creation, membership, removal) actions 
 - Configure a scheduled job to generate a new school report for class group membership
 - Create associated email accounts
 - Tidy the cmdlet interfaces to present exported functions from a module data file.
+- Set ManagedBy on class groups to the teacher.
+    - Cannot be achieved until a unique field can by used between MIS and AD for staff, like Adno->EmployeeNumber for students.
 
 # Install
 
@@ -36,10 +38,13 @@ Manage school group and user life cycle (creation, membership, removal) actions 
 ## Property Mapping
 Active Directory | Sims.Net | Description
 ---------------- | -------- | -----------
-EmployeeNumber | adno | Admission Number
+EmployeeNumber | adno | Admission Number unique from sims used as the key to link student details between MIS and AD.
 GivenName | Legal Forename
 Surname | Legal Surname
-DisplayName | Preferred Forename Preferred Surname | Concatenation of names for pronunciation
-Intake | Year of Entry | Entry year the pupil is within the school
+DisplayName | Preferred Forename Preferred Surname | Concatenation of names for pronunciation, Email signatures and sign in display.
+Intake | Year of Entry | Entry year the pupil is within the school used to find OU Path
 
-Name filtering, Names with characters; ` ' <space> ` will have those characters stripped out for compatibility purposes on other systems.
+## Rules
+* Names with characters; ` ' <space> ` will have those characters stripped out for compatibility purposes on other systems.
+* Usernames must be =<20 characters and will be truncated or changed at use request when starting.
+* duplicate usernames will get a number appended, starting from 1.
