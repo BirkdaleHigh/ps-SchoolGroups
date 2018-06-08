@@ -95,6 +95,7 @@ function New-CADirectory{
     #>
     [cmdletbinding(SupportsShouldProcess=$true)]
     Param(
+        # Username to create directroy and assign permissions with
         [Parameter(Mandatory=$true,
                    Position=0,
                    ValueFromPipeline=$true,
@@ -102,20 +103,20 @@ function New-CADirectory{
         [ValidateNotNullOrEmpty()]
         [Alias("Name")]
         [string[]]
-        $SamAccountName,
+        $SamAccountName
 
-        # Full subject name e.g. 'Computer Science'
+        , # Intake Year
+        [Parameter(Mandatory=$true,
+                    Position=1,
+                    ValueFromPipelineByPropertyName=$true)]
+        [ValidateScript({ValidateIntake $psitem})]
+        [string]$intake
+
+        , # Full subject name e.g. 'Computer Science'
         [Parameter(Mandatory=$true,
                    Position=2,
                    ValueFromPipelineByPropertyName=$true)]
-        [string]$SubjectName,
-
-        # Intake Year
-        [Parameter(Mandatory=$true,
-                   Position=1,
-                   ValueFromPipelineByPropertyName=$true)]
-        [ValidateScript({ValidateIntake $psitem})]
-        [string]$intake
+        [string]$SubjectName
     )
     Begin {
         [string]$year = $intake
@@ -165,6 +166,7 @@ function New-CADirectory{
             $Principal = New-Object System.Security.Principal.NTAccount($user)
             $Entry = New-Object System.Security.AccessControl.FileSystemAccessRule($Principal, 'Modify', 'ContainerInherit,ObjectInherit', $Propagation, $Type)
             $item.AddAccessRule($Entry)
+            Write-Verbose ("Apply ACL: {0} {1} {2}" -f $entry.AccessControlType, $entry.IdentityReference, $entry.FileSystemRights)
             Set-ACL $item.path $item
             Get-Item $item.path
         }
