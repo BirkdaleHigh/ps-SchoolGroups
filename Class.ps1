@@ -173,6 +173,16 @@ function Sync-Class{
 }
 
 function Get-ClassMember{
+    <#
+    .SYNOPSIS
+        List AD accounts that are supposed to be members of a class.
+    .DESCRIPTION
+        Reference the MIS list of Id's to get AD Accounts for users that are supposed to be in the given class group.
+    .INPUTS
+        [string] Class Code
+    .OUTPUTS
+        AD user
+    #>
     Param(
         [parameter(ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true)]
@@ -182,37 +192,61 @@ function Get-ClassMember{
         setupModule -ErrorAction Stop
     }
     Process{
-        $AdmissionNumber = $ClassMembers | where-object { (escapeName $_.Class) -eq $Class} | select-object -ExpandProperty Adno
+        $AdmissionNumber = $script:ClassMembers | where-object { (escapeName $_.Class) -eq $Class} | select-object -ExpandProperty Adno
+        if([string]::IsNullOrEmpty($AdmissionNumber)){
+            Throw "No members found in $Class from MIS dataset"
+        }
 
-        $filter = "(&(objectClass=user)(|(employeenumber={0})))" -f ($AdmissionNumber -join ')(employeenumber=')
+        $filter = "(&(objectClass=user)(|(employeenumber={0})))" -f ($AdmissionNumber.padLeft(6,'0') -join ')(employeenumber=')
         Write-Verbose $filter
         get-aduser -Properties EmployeeNumber -LDAPFilter $filter
     }
 }
-function Get-ClassADMember{
+function Get-ClassADGroupMember{
     <#
     .SYNOPSIS
-        Show the counts of users found within each form group
-    .DESCRIPTION
-        To quickly check the state of the AD membership, use this command to find all the total users in each group.
-
-        Check these numbers yourself against sims, use Test-FormMember to investigate specific forms further.
-
+        Get AD Accounts that are in the class
     .EXAMPLE
     #>
     Param(
-        # Accepts a wildcard filter.
-        [string]$Name = '*'
+        [Parameter(Mandatory,Position=0)]
+        [Alias("class")]
+        [string]
+        $Name
     )
-    Get-ADGroup -SearchBase "OU=Class Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL" -Filter {Name -like $Name} |
-        foreach {
-            Get-ADGroupMember -Identity $psitem |
-                add-member -PassThru -MemberType 'NoteProperty' -Name 'ClassName' -value $psitem -force
-        } |
-        Group-Object -Property 'ClassName'
+    get-aduser -Properties EmployeeNumber -LDAPFilter "(&(objectClass=user)(memberof=CN=$Name,OU=Class Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL))"
 }
 
 function Test-ClassMember{
+    <#
+    .SYNOPSIS
+        Compares MIS to AD for present/missing account group memberships
+    .DESCRIPTION
+        ADGroup is true if user is found in the AD Class Security Group
+        MIS is true if user if found in the MIS dataset
+
+        Calls Get-ClassADGroupMember to find all users currently in the group.
+        Calls Get-ClassMember to get all AD accounts for users from the MIS Dataset
+
+        Compares these two sets to add resulting properties to use objects.
+    .EXAMPLE
+        Test-ClassMember 10e4_en
+        Report group membership state of current and expected users.
+
+        ADGroup   MIS DistinguishedName  EmployeeNumber Enabled GivenName Name      ObjectClass
+        -------   --- -----------------  -------------- ------- --------- ----      -----------
+           True  True CN=user,...        004841            True user      lastname  user
+           True  True CN=user,...        004844            True user      lastname  user
+           True  True CN=user,...        005152            True user      lastname  user
+           True False CN=user,...        004949            True user      lastname  user
+          False  True CN=user,...        004839            True user      lastname  user
+          False  True CN=user,...        004876            True user      lastname  user
+          False  True CN=user,...        004939            True user      lastname  user
+    .INPUTS
+        String, Class Group Name
+    .OUTPUTS
+        Microsoft.ActiveDirectory.Management.ADUser
+    #>
     Param(
         # Form the user should be a member of
         [parameter(Mandatory=$true,
@@ -221,34 +255,21 @@ function Test-ClassMember{
                    ValueFromPipelineByPropertyName=$true)]
         [string]
         $Class
-
-        , # Show values only from the chosen source, <= List, => AD
-        [parameter(Position=1,
-                   ValueFromPipeline=$false,
-                   ValueFromPipelineByPropertyName=$true)]
-        [ValidateSet('Both', 'List', 'AD')]
-        [string]
-        $Filter = 'Both'
     )
-    $ADList = get-aduser -Properties EmployeeNumber -LDAPFilter "(&(objectClass=user)(memberof=CN=$Class,OU=Class Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL))"
+    $ADList = @(Get-ClassADGroupMember $Class)
 
-    if($ADList -eq $null){
+    if([string]::IsNullOrEmpty($ADList)){
         Write-Warning "No members found in $Class from the AD"
-        $Filter = 'List'
-    }
-    switch ($Filter)
-    {
-        'List' {
-            Get-ClassMember $Class
-        }
-        'AD' {
-            Compare-Object (Get-ClassMember $Class) $ADList  -IncludeEqual -Property EmployeeNumber -PassThru | where SideIndicator -eq '=>'
-        }
-        Default {
-            Compare-Object (Get-ClassMember $Class) $ADList  -IncludeEqual -Property EmployeeNumber
-        }
     }
 
+    $misList = @(Get-ClassMember $Class -ErrorAction SilentlyContinue)
+    Compare-Object $misList $ADList -IncludeEqual -Property EmployeeNumber -PassThru |
+        ForEach-Object {
+            Add-Member -inputObject $PSItem -MemberType NoteProperty -Name "ADGroup" -Value ($PSItem.SideIndicator -in '=>','==') -Force
+            Add-Member -inputObject $PSItem -MemberType NoteProperty -Name "MIS"     -Value ($PSItem.SideIndicator -in '<=','==') -Force
+            $psitem.PSObject.properties.remove("SideIndicator")
+            Write-Output $psitem
+        }
 }
 
 function Sync-ClassMember{
@@ -258,8 +279,17 @@ function Sync-ClassMember{
     .DESCRIPTION
         For each class in the report add the members found only in this list
         For each class in the report remove any members only found in the AD
+
+        Filters the output from Test-ClassMember to add/remove users.
+    .EXAMPLE
+        Sync-ClassMember 10e4_en -Verbose -WhatIf
+        Test what is about to happen to the group when sync runs
+
+        VERBOSE: (&(objectClass=user)(|(employeenumber=000001)(employeenumber=000007)...))
+        What if: Performing the operation "Modify group members" on target "10e4_en".
+        VERBOSE: Class: 10e4_en, New Total: 16, Add: 5 from MIS, Remove: 1 only in AD.
     #>
-    [cmdletbinding()]
+    [cmdletbinding(SupportsShouldProcess=$true)]
     Param(
         # Choose Classes to Syncronize
         [Parameter(ValueFromPipeline,ValueFromPipelineByPropertyName)]
@@ -268,16 +298,27 @@ function Sync-ClassMember{
         $Class = (Get-Class)
     )
     $Class | ForEach-Object {
-        $add = $psitem | Test-ClassMember -Filter List
-        if($add){
-            Add-ADGroupMember -Identity $psitem -Members $add > $null
+        $users = Test-ClassMember $psitem
+        $add = @($users | where-object { $psitem.MIS -and -not $psitem.ADGroup })
+        $remove = @($users | where-object MIS -eq $false)
+
+        if ($pscmdlet.ShouldProcess($psitem, "Modify group members")){
+            if($add){
+                Add-ADGroupMember -Identity $psitem -Members $add > $null
+            }
+            if($remove){
+                Remove-ADGroupMember -Identity $psitem -Members $remove -confirm:$false
+            }
         }
 
-        $remove = $psitem | Test-ClassMember -Filter AD
-        if($remove){
-            Remove-ADGroupMember -Identity $psitem -Members $remove -confirm:$false
-        }
-        Write-Verbose "Class: $psitem has in MIS: $($add.length) and remove: $($remove.length) only found in AD"
+        Write-Verbose (
+            "Class: {0}, New Total: {1}, Add: {2} from MIS, Remove: {3} only in AD." -f @(
+                $psitem
+                $users | where-object adgroup | Measure-Object | Select-Object -expandproperty count
+                $add.length
+                $remove.length
+            )
+        )
     }
 }
 
