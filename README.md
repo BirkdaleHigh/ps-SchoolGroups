@@ -48,3 +48,14 @@ Intake | Year of Entry | Entry year the pupil is within the school used to find 
 * Names with characters; ` ' <space> ` will have those characters stripped out for compatibility purposes on other systems.
 * Usernames must be =<20 characters and will be truncated or changed at use request when starting.
 * duplicate usernames will get a number appended, starting from 1.
+
+# Contributing
+Any contributions are welcome, the areas that need work to accept PR's would be;
+
+1. Integrate Poshcode/Configuration module for changing configuration preferences per user that installed the module as a different org
+1. Extract all hardcoded options to parameters that respect Configuration options for the module
+1. Introduce RamblingCookieMonster/PSDepend to rely on the use of Poshcode/Configuration when distributing the module
+1. Introduce Poshcode/ModuleBuilder to align the module with how the community expects modules.
+1. More Unit Tests
+
+These points aren't the only things to be accepted, however I feel they would be the major roadblocks before others may use this module.
