@@ -159,11 +159,20 @@ function New-Class{
     Param(
         [parameter(Mandatory=$true,
                    ValueFromPipeline=$true)]
-        [string]
+        [string[]]
         $name
     )
     Process{
-        New-ADGroup -GroupScope Universal -GroupCategory Security -Name $name -Path 'OU=Class Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL' -PassThru
+        foreach($class in $name){
+            $group = @{
+                'GroupScope' = 'Universal'
+                'GroupCategory' = 'Security'
+                'PassThru' = $True
+                'Name' = $class
+                'Path' = 'OU=Class Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL'
+            }
+            New-ADGroup @group
+        }
     }
 }
 
