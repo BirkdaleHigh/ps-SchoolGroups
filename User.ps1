@@ -1,5 +1,5 @@
 ﻿function New-SchoolUser{
-    [cmdletbinding()]
+    [cmdletbinding(SupportsShouldProcess=$true)]
     Param(
         [Parameter(Mandatory=$true,
                    ValueFromPipelineByPropertyName=$true)]
@@ -25,7 +25,11 @@
         [string]$intake,
 
         # Block creation of user folder
-        [switch]$NoHome
+        [switch]$NoHome,
+
+        # Maximum number of duplicate usernames to increment through when creating accounts
+        [ValidateRange(0,[int]::MaxValue)]
+        [int]$Max = 100
     )
     Process{
         [string]$year = $intake
@@ -35,9 +39,29 @@
             Throw "$username is over 20 characters"
         }
 
-        if(Get-ADUser -Filter {EmployeeNumber -eq $EmployeeNumber} -Outvariable duplicatenumber){
-           Throw "$employeeNumber already exists as $duplicatenumber"
+        Try {
+            $precheck = Get-ADUser -LDAPFilter ("(&(objectClass=user)(|(employeenumber={0})(samaccountname={1})))" -f $EmployeeNumber,$username) -ErrorAction Stop
         }
+        Catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
+            # No user found is ideal for this function.
+            $precheck = $null
+        }
+        if ($precheck.employeenumber -eq $EmployeeNumber) {
+            Throw "$employeeNumber already exists as $precheck"
+        }
+        if ($precheck.samAccountName) {
+            Write-Warning "Increment username counter for duplicate entries"
+            for($i = 1; ($existing -eq $true) -and ($i -lt $Max); $i += 1){
+                Write-Verbose "Look for existing: $($username + $i)"
+                Try {
+                    $existing = Get-ADUser $username
+                }
+                Catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
+                    $existing = $false
+                }
+            }
+        }
+
 
         $user = @{
             EmployeeNumber = $EmployeeNumber
@@ -55,10 +79,11 @@
             ChangePasswordAtLogon = $true
             Enabled = $true
         }
+        if ($pscmdlet.ShouldProcess($user.name, "New AD User")){
+            New-ADUser @user > $null
+            $account = Get-ADUser $username -properties HomeDirectory,EmployeeNumber
+        }
 
-        new-aduser @user
-
-        $account = Get-ADUser $username -properties HomeDirectory,EmployeeNumber
 
         if(-not $NoHome){
             $account | New-HomeDirectory > $null
