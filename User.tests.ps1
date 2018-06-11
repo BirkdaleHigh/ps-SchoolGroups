@@ -1,29 +1,53 @@
 import-module "$PSScriptRoot\SchoolGroups.psm1" -force
 
+# Example 1: https://hastebin.com/guhomecida.rb
+# Example 2: https://hastebin.com/seresoseve.scala
+# Example 3: https://hastebin.com/ixebepagik.php
+
 Describe 'New-SchoolUser' {
-    Mock -ModuleName SchoolGroups -CommandName New-ADUser -MockWith {
-        write-host $psboundparameters
-        return $script:newUser = $psboundparameters
-    }
-    Mock -CommandName New-HomeDirectory -MockWith {
-        # Not testing this function here.
-        return $true
-    }
-    Mock -ModuleName SchoolGroups -CommandName Get-ADUser -MockWith {
-        if($script:newUser){
-            return $script:newUser
-        } else {
-            return $null
+    BeforeAll {
+        $defaultParams = @{
+            GivenName      = 'First'
+            Surname        = 'Last'
+            EmployeeNumber = '001234'
+            Intake         = 2018
+        }
+        Mock ValidateIntake -ModuleName SchoolGroups { $true }
+        Mock New-HomeDirectory -ModuleName SchoolGroups
+        Mock Get-ADUser -ModuleName SchoolGroups {
+            if($script:NewADUser){
+                return $script:NewADUser
+            }
+        }
+        Mock New-ADUser -ModuleName SchoolGroups {
+            $u = [Microsoft.ActiveDirectory.Management.ADUser]::new()
+            $u.SamAccountName = "18LastF"
+            $u.HomeDirectory = "\\example\path"
+            $u.EmployeeNumber = '001234'
+
+            return $script:NewADUser = $u
         }
     }
+
+
     Context "Add 1 User, Ideal example"{
-        It "Does not create a home directory for the user" {
-            $t = New-SchoolUser -NoHome -intake (Get-Date).year -givenname "Alpha" -surname "Test" -EmployeeNumber "004321"
+        It "Create 1 user"{
+            $account = New-SchoolUser @defaultParams
 
-            $t.length | Should -be 1
-            Assert-MockCalled -CommandName New-HomeDirectory -Times 0 -Exactly
-            Assert-MockCalled -ModuleName SchoolGroups -CommandName New-ADUser -Times 1 -Exactly
+            Assert-MockCalled New-ADUser -Times 1 -Exactly -ModuleName SchoolGroups
+            Assert-MockCalled New-HomeDirectory -Times 1 -Exactly -ModuleName SchoolGroups
+            $account.SamAccountName | Should -be "18LastF"
         }
+    }
+    context "Do not create Home Directroy"{
+        It "nohome parameter does not call New-HomeDriectory"{
+            $newParams = $defaultParams
+            $newParams.noHome = $true
+            $account = New-SchoolUser @newParams
 
+            Assert-MockCalled New-ADUser -Times 1 -Exactly -ModuleName SchoolGroups
+            Assert-MockCalled New-HomeDirectory -Times 0 -Exactly -ModuleName SchoolGroups
+            $account.SamAccountName | Should -be "18LastF"
+        }
     }
 }
