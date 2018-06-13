@@ -3,13 +3,13 @@
     if($Datasource){
         $script:SimsReport = import-csv $Datasource.fullname
 
-        $script:ClassMembers = $SimsReport | Where-Object Class -NotLike "CLS *" | Where {-not [string]::IsNullOrEmpty($psitem.class)}
-        $script:FormMembers  = $SimsReport | Where-Object Class    -Like "CLS *" | Where {-not [string]::IsNullOrEmpty($psitem.class)}
+        $script:ClassMembers = $SimsReport | Where-Object Class -NotLike "CLS *" | Where-Object {-not [string]::IsNullOrEmpty($psitem.class)}
+        $script:FormMembers  = $SimsReport | Where-Object Class    -Like "CLS *" | Where-Object {-not [string]::IsNullOrEmpty($psitem.class)}
 
         $script:ClassList = $ClassMembers | Select-Object -Unique -ExpandProperty class
         $script:FormList  = $FormMembers  | Select-Object -Unique -ExpandProperty class
     } else {
-        Write-Warning "Run 'New-Report' for data to sync user accounts"
+        Write-Warning "Run 'New-Report' for fresh MIS data to compare user accounts with"
     }
 }
 

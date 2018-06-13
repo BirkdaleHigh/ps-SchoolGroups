@@ -49,7 +49,7 @@
         if ($precheck.employeenumber -eq $EmployeeNumber) {
             Throw "$employeeNumber already exists as $precheck"
         }
-        if ($precheck.samAccountName) {
+        if ($precheck.samAccountName -eq $username) {
             Write-Warning "Increment username counter for duplicate entries"
             for($i = 1; ($existing -eq $true) -and ($i -lt $Max); $i += 1){
                 Write-Verbose "Look for existing: $($username + $i)"

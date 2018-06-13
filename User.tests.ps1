@@ -10,7 +10,7 @@ Describe 'New-SchoolUser' {
             GivenName      = 'First'
             Surname        = 'Last'
             EmployeeNumber = '001234'
-            Intake         = 2018
+            Intake         = '2018'
         }
         Mock ValidateIntake -ModuleName SchoolGroups { $true }
         Mock New-HomeDirectory -ModuleName SchoolGroups
@@ -21,9 +21,9 @@ Describe 'New-SchoolUser' {
         }
         Mock New-ADUser -ModuleName SchoolGroups {
             $u = [Microsoft.ActiveDirectory.Management.ADUser]::new()
-            $u.SamAccountName = "18LastF"
-            $u.HomeDirectory = "\\example\path"
-            $u.EmployeeNumber = '001234'
+            $u.SamAccountName = $name
+            $u.HomeDirectory = '\\example\path'
+            $u.EmployeeNumber = $EmployeeNumber
 
             return $script:NewADUser = $u
         }
@@ -43,11 +43,13 @@ Describe 'New-SchoolUser' {
         It "nohome parameter does not call New-HomeDriectory"{
             $newParams = $defaultParams
             $newParams.noHome = $true
+            $newParams.GivenName = 'Second'
+            $newParams.EmployeeNumber = '001235'
             $account = New-SchoolUser @newParams
 
             Assert-MockCalled New-ADUser -Times 1 -Exactly -ModuleName SchoolGroups
             Assert-MockCalled New-HomeDirectory -Times 0 -Exactly -ModuleName SchoolGroups
-            $account.SamAccountName | Should -be "18LastF"
+            $account.SamAccountName | Should -be "18LastS"
         }
     }
 }
