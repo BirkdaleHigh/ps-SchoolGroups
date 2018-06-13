@@ -59,3 +59,8 @@ Any contributions are welcome, the areas that need work to accept PR's would be;
 1. More Unit Tests
 
 These points aren't the only things to be accepted, however I feel they would be the major roadblocks before others may use this module.
+
+## Update "functions to export" list
+1. `Import-Module -Force .\SchoolGroups.psm1` Force import the module to bypass the psd curated exports list.
+1. `get-command -Module SchoolGroups | select -ExpandProperty name | sort` View the list to remove functions that should be exported
+1. Replace the list in .psd1 with the updated version in alphabetical order

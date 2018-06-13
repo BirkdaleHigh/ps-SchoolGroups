@@ -61,6 +61,18 @@ function start-classSync(){
 }
 
 Function Import-NewIntake{
+    <#
+    .SYNOPSIS
+    Overall task to setup the new student year from sims
+    .DESCRIPTION
+    Work in Progress
+    1. run a specfic report (different from the sync report) from sims.net
+    2. Import that CSV
+    3. convert that import into user objects
+    4. Pipe those object the new-schooluser for consistancy across all users
+    5. Run class sync to assign form/class memberships
+    6. run reset-adpassword against these forms to generate welcome letters
+    #>
     $csv = import-csv (new-report -name "Import to Active Directory" -Destination ($env:TEMP + "\intake-" + (get-date).ToFileTimeUtc() + ".csv") )
     $ad = $csv | import-simsUser
     $ad | New-SchoolUser
@@ -95,4 +107,10 @@ function Reset-AllIntakePassword{
     }
 }
 
-Export-ModuleMember -function @()
+function Reset-ExamAccounts {
+    Param()
+    Get-ADUser -Filter * -SearchBase 'OU=Exams,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL' |
+        Reset-ADPassword -Force
+        Sort-Object { [int]$_.surname } |
+        Format-Table username,password,seatnumber
+}

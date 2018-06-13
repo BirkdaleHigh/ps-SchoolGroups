@@ -331,35 +331,8 @@ function Sync-ClassMember{
     }
 }
 
-function Split-ClassList{
-    <#
-    .SYNOPSIS
-        Split the full user list into each class
-    .DESCRIPTION
-        Split full user list into separate lists to hand out for teachers class'
-    .EXAMPLE
-        C:\PS> <example usage>
-        Explanation of what the example does
-    .INPUTS
-        Inputs (if any)
-    .OUTPUTS
-        Output (if any)
-    .NOTES
-        General notes
-    #>
-    Param(
-        # List of the whole Year Group
-        $YearGroup
-
-        , # List of the class members
-        $Class
-    )
-    $YearGroup | where adno -in $class.adno | select givenname,surname,SamAccountName,password
-}
-
 <#
 notes for testing
 
 Check classMembers report has the same number of members as the AD group
-
 #>

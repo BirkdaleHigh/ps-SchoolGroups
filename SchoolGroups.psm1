@@ -49,3 +49,4 @@ setupModule
 . "$PSScriptRoot\Adno.ps1"
 . "$PSScriptRoot\User.ps1"
 . "$PSScriptRoot\Sims.ps1"
+. "$PSScriptRoot\Task.ps1"
