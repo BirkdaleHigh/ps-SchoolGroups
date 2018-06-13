@@ -110,7 +110,7 @@ function Reset-AllIntakePassword{
 function Reset-ExamAccounts {
     Param()
     Get-ADUser -Filter * -SearchBase 'OU=Exams,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL' |
-        Reset-ADPassword -Force
+        Reset-ADPassword |
         Sort-Object { [int]$_.surname } |
         Format-Table username,password,seatnumber
 }
