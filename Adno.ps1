@@ -1,4 +1,45 @@
 ﻿function Get-MissingEmployeeNumber{
+    <#
+    .SYNOPSIS
+    Are user accounts missing EmployeeNumbers
+
+    .DESCRIPTION
+    Search an entire year (which is shorthand to the OU) for enabled user accounts without the EmployeeNumber filled in.
+
+    Employee Number is the unique Admission number from our MIS, and is the linchpin around how users are identified across IT systems.
+
+
+
+    .PARAMETER PassThru
+    Return user AD objects with a missing employee number
+
+    .EXAMPLE
+    Get-MissingEmployeeNumber -intake 2017
+    success
+
+    No users are missing an employeenumber field
+
+    .EXAMPLE
+    Get-MissingEmployeeNumber -intake 2016
+    incorrect: 1
+
+    One user is missing an EmployeeNumber
+    .EXAMPLE
+    Get-MissingEmployeeNumber -intake 2016 -PassThru
+
+    DistinguishedName : CN=16TestA,OU=2016,OU=...
+    EmployeeNumber    :
+    Enabled           : True
+    GivenName         : Account
+    Name              : 16TestA
+    ObjectClass       : user
+    SamAccountName    : 16TestA
+    Surname           : Test
+    UserPrincipalName : 16TestA@ORG
+
+    .NOTES
+    General notes
+    #>
     Param(
         [switch]
         $PassThru
@@ -40,6 +81,7 @@ function Search-MISAdmissionNumber{
         $Searchbase = $script:SimsReport
     )
     Begin {
+        setupModule
         write-verbose "Searching $($SearchBase | measure | select -expandproperty count) records."
     }
     Process{

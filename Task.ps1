@@ -33,12 +33,15 @@ Function Start-Sync(){
     #>
 }
 
-function Start-UpdateAllEmplyeeNumber {
-    Get-MissingEmployeeNumber -intake 2017 -PassThru | Search-MISAdmissionNumber | Update-EmployeeNumber
-    Get-MissingEmployeeNumber -intake 2016 -PassThru | Search-MISAdmissionNumber | Update-EmployeeNumber
-    Get-MissingEmployeeNumber -intake 2015 -PassThru | Search-MISAdmissionNumber | Update-EmployeeNumber
-    Get-MissingEmployeeNumber -intake 2014 -PassThru | Search-MISAdmissionNumber | Update-EmployeeNumber
-    Get-MissingEmployeeNumber -intake 2013 -PassThru | Search-MISAdmissionNumber | Update-EmployeeNumber
+function Start-UpdateEmployeeNumber {
+    Param(
+        [ValidateScript({ foreach($year in $psitem){ ValidateIntake $year} })]
+        [int[]]
+        $Intake
+    )
+    foreach($year in $Intake){
+        Get-MissingEmployeeNumber -intake $year -PassThru | Search-MISAdmissionNumber | Update-EmployeeNumber
+    }
 }
 
 function start-classSync(){
