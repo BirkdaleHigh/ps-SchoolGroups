@@ -2,26 +2,81 @@ class SimsUser {
     [string]$Givenname
     [string]$Surname
     [string]$EmployeeNumber
-    [string]$DisplayName
     [string]$Intake
+    static [string]$DisplayName = "$Givenname $Surname"
 }
 
 function Import-SimsUser {
+    Begin {
+        setupModule
+        $simsFields = @(
+            'adno'
+            'Forename'
+            'Legal Surname'
+            'Year'
+        )
+    }
+    Process {
+        $script:SimsReport |
+            Select-Object -Unique -Property $simsFields |
+            New-SimsUser
+    }
+}
+
+function New-SimsUser {
+    [cmdletBinding(DefaultParameterSetName="Default")]
     param(
         # Sims report user list
-        [Parameter(mandatory=$true,
+        [Parameter(ParameterSetName="Object",
+                   Mandatory=$true,
                    ValueFromPipeline=$true,
-                   ValueFromPipelineByPropertyName=$true,
                    Position=0)]
+        [PSObject]
         $user
-    )
+
+        , # Parameter help description
+        [Parameter(ParameterSetName="Default",
+                   ValueFromPipelineByPropertyName=$true)]
+        [Alias('Adno')]
+        [string]
+        $EmployeeNumber
+
+        , # Parameter help description
+        [Parameter(ParameterSetName="Default",
+                   ValueFromPipelineByPropertyName=$true)]
+        [Alias('Forename')]
+        [string]
+        $Givenname
+
+        , # Parameter help description
+        [Parameter(ParameterSetName="Default",
+                   ValueFromPipelineByPropertyName=$true)]
+        [Alias('Legal Surname')]
+        [string]
+        $Surname
+
+        , # Parameter help description
+        [Parameter(ParameterSetName="Default",
+                   ValueFromPipelineByPropertyName=$true)]
+        [Alias('Year')]
+        [string]
+        $Intake
+        )
     Process {
-        $obj = [SimsUser]@{
-            'Givenname'      = $user.'Legal Forename';
-            'Surname'        = $user.'Legal Surname';
-            'EmployeeNumber' = ([int]$user.adno).toString('000000');
-            'DisplayName'    = "$($user.'Preferred Forename') $($user.'Preferred Surname')";
-            'Intake' = $user.'Year of Entry';
+        Switch($PSCmdlet.ParameterSetName){
+            'Object' {
+                write-warning "Used Object"
+                $obj = [SimsUser]@{
+                    'Givenname'      = $user.'Forename'
+                    'Surname'        = $user.'Legal Surname'
+                    'EmployeeNumber' = ([int]$user.adno).toString('000000')
+                    'Intake' = $user.'Year'
+                }
+            }
+            Default {
+                write-warning "Used Default"
+                $obj = [SimsUser]$PSBoundParameters
+            }
         }
         Write-Output $obj
     }
