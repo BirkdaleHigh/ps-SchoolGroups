@@ -159,7 +159,7 @@ function New-Form{
 
 function Sync-Form{
     Test-Form -Filter List | New-Form
-    Test-Form -Filter AD | Remove-ADGroup -WhatIf
+    Test-Form -Filter AD | Remove-ADGroup
 }
 function Sync-FormMember{
     Get-Form | foreach {
