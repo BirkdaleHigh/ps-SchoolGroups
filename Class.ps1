@@ -121,27 +121,39 @@ function Get-ClassProperty{
 
 function Test-Class{
     Param(
-        # Show values only from the chosen source, <= List, => AD
+        # Show values only from the chosen source, <= MIS, => AD
         [parameter(ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true)]
-        [ValidateSet('Both', 'List', 'AD')]
+        [ValidateSet('Both', 'MIS', 'AD')]
         $Filter = 'Both'
     )
     $ADList = Get-ADGroup -Filter * -SearchBase 'OU=Class Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL'
 
     if($ADList -eq $null){
-        Write-Error "No Forms found from the AD" -ErrorAction Stop
+        Write-Error "No Classes found from the AD" -ErrorAction Stop
     }
+    $result = Compare-Object (Get-Class) $ADList.name -IncludeEqual |
+        Select-Object @{
+            name='Name';
+            Expression={
+                $_.InputObject
+            }
+        }, @{
+            name='Source';
+            Expression={
+                $_.SideIndicator.Replace('<=','MIS').Replace('=>','AD').Replace('==','Both')
+            }
+        }
     switch ($Filter)
     {
-        'List' {
-            Compare-Object (Get-Class) $ADList.name  -IncludeEqual  -PassThru | where SideIndicator -eq '<='
+        'MIS' {
+            $result | Where-Object Source -eq 'MIS'
         }
         'AD' {
-            Compare-Object (Get-Class) $ADList.name  -IncludeEqual  -PassThru | where SideIndicator -eq '=>'
+            $result | Where-Object Source -eq 'AD'
         }
         Default {
-            Compare-Object (Get-Class) $ADList.name  -IncludeEqual
+            $result
         }
     }
 }
@@ -158,7 +170,8 @@ function New-Class{
     #>
     Param(
         [parameter(Mandatory=$true,
-                   ValueFromPipeline=$true)]
+                   ValueFromPipeline=$true,
+                   ValueFromPipelineByPropertyName=$true)]
         [string[]]
         $name
     )
@@ -177,8 +190,8 @@ function New-Class{
 }
 
 function Sync-Class{
-    Test-Class -Filter List | New-Class
-    Test-Class -Filter AD | Remove-ADGroup
+    Test-Class | Where-Object Source -eq MIS | New-Class
+    Test-Class | Where-Object Source -eq AD | Select-Object -ExpandProperty Name | Remove-ADGroup
 }
 
 function Get-ClassMember{
