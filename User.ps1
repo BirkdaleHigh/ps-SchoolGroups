@@ -81,13 +81,13 @@
         }
         if ($pscmdlet.ShouldProcess($user.name, "New AD User")){
             New-ADUser @user > $null
-            $account = Get-ADUser $username -properties HomeDirectory,EmployeeNumber
+            $account = Get-ADUser $username -properties HomeDirectory,EmployeeNumber,EmailAddress
+            if(-not $NoHome){
+                $account | New-HomeDirectory > $null
+            }
         }
 
 
-        if(-not $NoHome){
-            $account | New-HomeDirectory > $null
-        }
 
         Write-Output $account
 
