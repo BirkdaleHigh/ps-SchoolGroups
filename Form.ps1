@@ -162,7 +162,20 @@ function Sync-Form{
     Test-Form -Filter AD | Remove-ADGroup
 }
 function Sync-FormMember{
-    Get-Form | foreach {
+    <#
+        .NOTE
+            TODO: Remove AD members not longer listed from MIS
+    #>
+    [cmdletbinding(SupportsShouldProcess=$true)]
+    Param(
+        # Form name to synchronize
+        [Parameter(ValueFromPipeline,ValueFromPipelineByPropertyName,Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('Form')]
+        [String[]]
+        $Name = (Get-Form)
+    )
+    $Name | ForEach-Object {
         Add-ADGroupMember -Identity $psitem -Members ($psitem | Test-FormMember -Filter List)
     }
 }
