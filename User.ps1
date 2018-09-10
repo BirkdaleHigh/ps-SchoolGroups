@@ -69,6 +69,7 @@
             Surname = $surname
             name = $username
             DisplayName = $DisplayName
+            EmailAddress = "$username@birkdalehigh.co.uk"
             Path = "OU=$year,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL"
             ProfilePath = "\\bhs-fs01\profiles$\Students\profile"
             HomeDirectory = "\\bhs-fs01\home$\Students\$year Students\$username"
@@ -242,7 +243,7 @@ function Reset-ADPassword{
         $passwordNeverExpiresException = "'PasswordNeverExpires' for this account is set to true. The account will not be required to change the password at next logon."
     }
     Process{
-        $resetList = $Identity | get-aduser -properties employeeNumber
+        $resetList = $Identity | get-aduser -properties employeeNumber,EmailAddress
         foreach ($user in $resetlist) {
             $password = "reset" + (get-random -Minimum 100 -Maximum 999)
                 if ($pscmdlet.ShouldProcess($user, "Reset Account Password")){
@@ -270,6 +271,7 @@ function Reset-ADPassword{
                     expression={ $_.Givenname }
                 }
                 'Surname'
+                'EmailAddress'
                 @{
                     name='Username';
                     expression={ $_.SamAccountName }
