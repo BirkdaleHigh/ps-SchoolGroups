@@ -423,6 +423,7 @@ function Get-SchoolUser {
         Microsoft.ActiveDirectory.Management.ADUser
     .NOTES
         General notes
+        TODO: Try change EmployeeNumber as Int to make just '<cmdlet> 0000' work as input. Also accepts '00000' pipes
     #>
     [CmdletBinding(DefaultParameterSetName='Specific')]
     Param(

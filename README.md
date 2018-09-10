@@ -19,6 +19,10 @@ Manage school group and user life cycle (creation, find, update, removal) action
 - Tidy the cmdlet interfaces to present exported functions from a module data file.
 - Set ManagedBy on class groups to the teacher.
     - Cannot be achieved until a unique field can by used between MIS and AD for staff, like Adno->EmployeeNumber for students.
+- Set group associations for users from specified template.
+- Enforce compliance of data rules like group membership, name formats, unique employee numbers etc.
+- Provision new users where employeenumber is not found in AD from MIS source.
+- Log changes made.
 
 # Install
 
