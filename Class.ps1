@@ -220,7 +220,7 @@ function Get-ClassMember{
         }
 
         $filter = "(&(objectClass=user)(|(employeenumber={0})))" -f ($AdmissionNumber.padLeft(6,'0') -join ')(employeenumber=')
-        Write-Verbose $filter
+        Write-Debug "LDAP Query for group members: $filter"
         get-aduser -Properties EmployeeNumber -LDAPFilter $filter
     }
 }
@@ -299,17 +299,28 @@ function Sync-ClassMember{
     .Synopsis
         Make the AD group members match the provided MIS list.
     .DESCRIPTION
-        For each class in the report add the members found only in this list
-        For each class in the report remove any members only found in the AD
+        For each class add the members found only in the MIS
+        For each class remove any members only found in the AD
 
-        Filters the output from Test-ClassMember to add/remove users.
+        Internally calls Test-ClassMember to and add/removes users based on output with some extra logging.
     .EXAMPLE
-        Sync-ClassMember 10e4_en -Verbose -WhatIf
+        Sync-ClassMember 10e4_en -Verbose -Debug -WhatIf
         Test what is about to happen to the group when sync runs
 
-        VERBOSE: (&(objectClass=user)(|(employeenumber=000001)(employeenumber=000007)...))
-        What if: Performing the operation "Modify group members" on target "10e4_en".
+        DEEBIG: LDAP Query for group members: (&(objectClass=user)(|(employeenumber=000001)(employeenumber=000007)...))
+        What if: Performing the operation "Add 1 Member(s), Remove 0 Member(s)" on target "10e4_en".
         VERBOSE: Class: 10e4_en, New Total: 16, Add: 5 from MIS, Remove: 1 only in AD.
+    .EXAMPLE
+        Sync-ClassMember -WhatIf -Verbose
+        Sample output from testing what synchronising everythign will do.
+
+        VERBOSE: No change to Class: 8AB_Pe, Total: 27
+        What if: Performing the operation "Add 1 Member(s), Remove 0 member(s)" on target "8E7_En".
+        VERBOSE: Class: 8E7_En, New Total: 12, Add: 1 from MIS, Remove: 0 only in AD.
+        ...
+    .LINK
+        Get-Help Get-Class
+        Get-Help Test-ClassMember
     #>
     [cmdletbinding(SupportsShouldProcess=$true)]
     Param(
@@ -324,28 +335,35 @@ function Sync-ClassMember{
         $add = @($users | where-object { $psitem.MIS -and -not $psitem.ADGroup })
         $remove = @($users | where-object MIS -eq $false)
 
-        if ($pscmdlet.ShouldProcess($psitem, "Modify group members")){
-            if($add){
-                Add-ADGroupMember -Identity $psitem -Members $add > $null
-            }
-            if($remove){
-                Remove-ADGroupMember -Identity $psitem -Members $remove -confirm:$false
-            }
-        }
-
-        Write-Verbose (
-            "Class: {0}, New Total: {1}, Add: {2} from MIS, Remove: {3} only in AD." -f @(
-                $psitem
-                $users | where-object adgroup | Measure-Object | Select-Object -expandproperty count
+        if(($add.length -eq 0) -and ($remove.length -eq 0)){
+            Write-Verbose (
+                "No change to Class: {0}, Total: {1}" -f @(
+                    $psitem
+                    $users | where-object adgroup | Measure-Object | Select-Object -expandproperty count
+                )
+            )
+        } else {
+            $changeText = "Add {0} Member(s), Remove {1} Member(s)" -f @(
                 $add.length
                 $remove.length
             )
-        )
+            if ($pscmdlet.ShouldProcess($psitem, $changeText)){
+                if($add){
+                    Add-ADGroupMember -Identity $psitem -Members $add > $null
+                }
+                if($remove){
+                    Remove-ADGroupMember -Identity $psitem -Members $remove -confirm:$false
+                }
+            }
+
+            Write-Verbose (
+                "Class: {0}, New Total: {1}, Add: {2} from MIS, Remove: {3} only in AD." -f @(
+                    $psitem
+                    $users | where-object adgroup | Measure-Object | Select-Object -expandproperty count
+                    $add.length
+                    $remove.length
+                )
+            )
+        }
     }
 }
-
-<#
-notes for testing
-
-Check classMembers report has the same number of members as the AD group
-#>
