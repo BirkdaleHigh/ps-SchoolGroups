@@ -38,6 +38,18 @@ Describe 'New-SchoolUser' {
             Assert-MockCalled New-HomeDirectory -Times 1 -Exactly -ModuleName SchoolGroups
             $account.SamAccountName | Should -be "18LastF"
         }
+        It "Will not create a duplicate employeeNumber"{
+            $newParams = $defaultParams
+            $newParams.EmployeeNumber = '001233'
+            $account = New-SchoolUser @newParams
+
+            Assert-MockCalled New-ADUser -Times 1 -Exactly -ModuleName SchoolGroups
+            Assert-MockCalled New-HomeDirectory -Times 1 -Exactly -ModuleName SchoolGroups
+            $account.SamAccountName | Should -be "18LastF1"
+        }
+        It "Increment the username number for duplicates"{
+            # TODO
+        }
     }
     context "Do not create Home Directroy"{
         It "nohome parameter does not call New-HomeDriectory"{

@@ -29,39 +29,32 @@
 
         # Maximum number of duplicate usernames to increment through when creating accounts
         [ValidateRange(0,[int]::MaxValue)]
-        [int]$Max = 100
+        [int]$Max = 4
     )
+    Begin{
+        function CreateUniqueUser([string]$ID,[string]$Username,[int]$Count,[int]$Max = $Max){
+            if($Count -eq 0){
+                $calcUsername = "$Username"
+            } else {
+                $calcUsername = "$Username$Count"
+            }
+            if($calcUsername.length -gt 20){ # Max character limit in AD for SamAccountName property is 20
+                Throw "$calcUsername is over 20 characters"
+            }
+            if($Max -le $Count){
+                Throw "Maximum attempts to find username reached ($MAX)"
+            }
+            $u = Get-ADUser -LDAPFilter ("(&(objectClass=user)(|(employeenumber={0})(samaccountname={1})))" -f $ID, $calcUsername) -properties EmployeeNumber
+            if($u.count -eq 0){
+                return $calcUsername
+            }
+            CreateUniqueUser $ID $Username ($Count + 1)
+        }
+    }
     Process{
         [string]$year = $intake
-        $username = ($year.Remove(0,2) + $surname + $Givenname[0])
 
-        if($username.length -gt 20){
-            Throw "$username is over 20 characters"
-        }
-
-        Try {
-            $precheck = Get-ADUser -LDAPFilter ("(&(objectClass=user)(|(employeenumber={0})(samaccountname={1})))" -f $EmployeeNumber,$username) -ErrorAction Stop
-        }
-        Catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
-            # No user found is ideal for this function.
-            $precheck = $null
-        }
-        if ($precheck.employeenumber -eq $EmployeeNumber) {
-            Throw "$employeeNumber already exists as $precheck"
-        }
-        if ($precheck.samAccountName -eq $username) {
-            Write-Warning "Increment username counter for duplicate entries"
-            for($i = 1; ($existing -eq $true) -and ($i -lt $Max); $i += 1){
-                Write-Verbose "Look for existing: $($username + $i)"
-                Try {
-                    $existing = Get-ADUser $username
-                }
-                Catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
-                    $existing = $false
-                }
-            }
-        }
-
+        $username = CreateUniqueUser -ID $EmployeeNumber -Username ($year.Remove(0,2) + $surname + $Givenname[0])
 
         $user = @{
             EmployeeNumber = $EmployeeNumber
