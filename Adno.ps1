@@ -106,8 +106,13 @@ function Update-EmployeeNumber {
         [Microsoft.ActiveDirectory.Management.ADUser[]]$Identity
     )
     Process{
-        $identity | foreach {
-            set-aduser -identity $identity.DistinguishedName -EmployeeNumber $identity.EmployeeNumber -PassThru
+        ForEach ($User in $Identity) {
+            try{
+                Set-ADUser -identity $User.DistinguishedName -add @{EmployeeNumber = $User.EmployeeNumber} -ErrorAction Stop
+            } catch {
+                Throw $psitem
+            }
+            Write-Output $User
         }
     }
 }
