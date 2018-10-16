@@ -40,6 +40,7 @@
     .NOTES
     General notes
     #>
+    [CmdletBinding()]
     Param(
         [switch]
         $PassThru
@@ -47,13 +48,15 @@
         , # Search all users in an intake year
         [Parameter()]
         [ValidateScript({ValidateIntake $psitem})]
-        [string]$intake = 2016
+        [string]$intake = (get-date).year
     )
     $userFilter = @{
-            Filter = '(enabled -eq $true) -and (employeeNumber -notlike "*")'
-            SearchBase = "OU=$intake,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL"
-            Properties = 'employeeNumber'
-        }
+        Filter = '(enabled -eq $true) -and (employeeNumber -notlike "*")'
+        SearchBase = "OU=$intake,$($script:config.ou.students)"
+        Properties = 'employeeNumber'
+    }
+    Write-Verbose "Query for enabled users under OU: $($userFilter.SearchBase)"
+
     $users = Get-ADUser @userFilter
 
     if(-not $PassThru){
@@ -61,9 +64,9 @@
             Measure-Object |
             Select-Object -ExpandProperty Count
         if($Numbered -eq 0){
-            "success"
+            "All enabled accounts have an EmployeeNumber"
         } else {
-            "incorrect: $numbered"
+            "Incorrect: $numbered missing EmployeeNumbers."
         }
     } else {
         Write-Output $users
