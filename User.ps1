@@ -44,7 +44,11 @@
             if($Max -le $Count){
                 Throw "Maximum attempts to find username reached ($MAX)"
             }
-            $u = Get-ADUser -LDAPFilter ("(&(objectClass=user)(|(employeenumber={0})(samaccountname={1})))" -f $ID, $calcUsername) -properties EmployeeNumber
+            try {
+                $u = Get-ADUser -LDAPFilter ("(&(objectClass=user)(|(employeenumber={0})(samaccountname={1})))" -f $ID, $calcUsername) -properties EmployeeNumber
+            } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
+                return $calcUsername
+            }
             if($u.count -eq 0){
                 return $calcUsername
             }
