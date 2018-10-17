@@ -79,24 +79,19 @@ function Search-MISAdmissionNumber{
         # Active Directory account of user
         [Parameter(Mandatory,ValueFromPipeline,ValueFromPipelineByPropertyName)]
         [Microsoft.ActiveDirectory.Management.ADUser[]]$Identity
-
-        ,# MIS dataset of users to search
-        $Searchbase = $script:SimsReport
     )
     Begin {
         setupModule
-        write-verbose "Searching $($SearchBase | measure | select -expandproperty count) records."
     }
     Process{
-        $Identity | Foreach {
-            $ad = $_
-            $Searchbase | Foreach {
-                    if( ($ad.givenname -eq $psitem.Forename) -and ($ad.surname -eq $psitem.'Legal Surname'.replace("`'",'').replace(" ",'-')) ){
-                        $ad.EmployeeNumber = $psitem.adno
-                        write-output $ad
-                    }
+        ForEach($ADUser in $Identity){
+            $script:UniqueUsers | Foreach-Object {
+                if( ($ADUser.givenname -eq $psitem.Forename) -and ($ADUser.surname -eq $psitem.'Legal Surname'.replace("`'",'').replace(" ",'-')) ){
+                    $ADUser.EmployeeNumber = $psitem.adno
+                    write-output $ADUser
                 }
             }
+        }
     }
 }
 
@@ -109,8 +104,13 @@ function Update-EmployeeNumber {
         [Microsoft.ActiveDirectory.Management.ADUser[]]$Identity
     )
     Process{
-        $identity | foreach {
-            set-aduser -identity $identity.DistinguishedName -EmployeeNumber $identity.EmployeeNumber -PassThru
+        ForEach ($User in $Identity) {
+            try{
+                Set-ADUser -identity $User.DistinguishedName -add @{EmployeeNumber = $User.EmployeeNumber} -ErrorAction Stop
+            } catch {
+                Throw $psitem
+            }
+            Write-Output $User
         }
     }
 }
