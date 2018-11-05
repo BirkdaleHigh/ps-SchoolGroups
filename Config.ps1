@@ -1,6 +1,6 @@
 function Get-Configuration{
     if(-not $Script:Config){
-        Load-Configuration
+        Import-Configuration
     }
     Write-Output $Script:Config
 }
@@ -15,7 +15,7 @@ function Set-Configuration{
     }
 }
 
-function Load-Configuration {
+function Import-Configuration {
     [CmdletBinding()]
     Param()
     # Defaults

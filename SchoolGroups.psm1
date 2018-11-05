@@ -46,7 +46,7 @@ function ValidateIntake {
 
 . "$PSScriptRoot\Config.ps1"
 
-Load-Configuration
+Import-Configuration
 
 setupModule
 

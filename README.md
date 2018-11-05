@@ -54,15 +54,17 @@ Intake | Year of Entry | Entry year the pupil is within the school used to find 
 * duplicate usernames will get a number appended, starting from 1.
 
 # Contributing
+
+Use `git update-index --skip-worktree .\configuration.json` to have git ignore your own changes to the module.
+
 Any contributions are welcome, the areas that need work to accept PR's would be;
 
-1. Integrate Poshcode/Configuration module for changing configuration preferences per user that installed the module as a different org
-1. Extract all hardcoded options to parameters that respect Configuration options for the module
-1. Introduce RamblingCookieMonster/PSDepend to rely on the use of Poshcode/Configuration when distributing the module
+1. Migrate settings from hard-coded values to using the `configuration.json`.
+1. More Unit Tests.
 1. Introduce Poshcode/ModuleBuilder to align the module with how the community expects modules.
-1. More Unit Tests
+1. Auto-publishing workflow.
 
-These points aren't the only things to be accepted, however I feel they would be the major roadblocks before others may use this module.
+These points aren't the only things to be accepted, I feel they would be the major roadblocks before others may use this module.
 
 ## Update "functions to export" list
 1. `Import-Module -Force .\SchoolGroups.psm1` Force import the module to bypass the psd curated exports list.
