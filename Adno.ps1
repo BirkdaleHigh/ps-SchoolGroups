@@ -64,9 +64,9 @@
             Measure-Object |
             Select-Object -ExpandProperty Count
         if($Numbered -eq 0){
-            "All enabled accounts have an EmployeeNumber"
+            "All enabled accounts have an EmployeeNumber for intake: $intake"
         } else {
-            "Incorrect: $numbered missing EmployeeNumbers."
+            "Incorrect: $numbered missing EmployeeNumbers for intake: $intake"
         }
     } else {
         Write-Output $users

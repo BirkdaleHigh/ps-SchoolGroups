@@ -1,0 +1,9 @@
+{
+    "version": "1.0.0",
+    "OU": {
+        "Base": "OU=EXAMPLE,DC=CONTOSO,DC=COM",
+        "Users": "OU=Users,OU=EXAMPLE,DC=CONTOSO,DC=COM",
+        "Students": "OU=Students,OU=Users,OU=EXAMPLE,DC=CONTOSO,DC=COM"
+    },
+    "Intake": [2018,2018,2016,2015,2014]
+}

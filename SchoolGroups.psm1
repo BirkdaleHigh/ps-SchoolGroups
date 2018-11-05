@@ -44,8 +44,9 @@ function ValidateIntake {
 
 # TODO: Function that replaces SideIndicator property with 2 booleans for AD and MIS
 
-Import-Module Configuration
-$Script:Config = import-configuration
+. "$PSScriptRoot\Config.ps1"
+
+Load-Configuration
 
 setupModule
 
