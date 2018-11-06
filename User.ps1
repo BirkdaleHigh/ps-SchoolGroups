@@ -438,11 +438,13 @@ function Get-SchoolUser {
 
         , # User Logon Name
         [Parameter(Position=0, Mandatory, ParameterSetName='Specific', ValueFromPipelineByPropertyName, ValueFromPipeline)]
+        [Parameter(Position=0, Mandatory, ParameterSetName='Either', ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [string[]]
         $SamAccountName
 
         , # Admission/Employee Number
         [Parameter(Position=0, Mandatory, ParameterSetName='Get1', ValueFromPipelineByPropertyName, ValueFromPipeline)]
+        [Parameter(Position=1, Mandatory, ParameterSetName='Either', ValueFromPipelineByPropertyName, ValueFromPipeline)]
         [ValidateLength(1,6)]
         [ValidatePattern('^\d+$')]
         [Alias("AdmissionNumber","Adno")]
@@ -486,7 +488,21 @@ function Get-SchoolUser {
                 if($output.length -gt 1){
                     Write-Error "Multiple Users found with the same EmplyeeNumber field, please correct this."
                 }
-                Write-Verbose ("Found {0} User(s)" -f $output.length)
+                Write-Verbose ("Found {0} User(s)" -f (Measure-object -InputObject $output).count)
+                Write-Output $output
+            }
+            'Either' {
+                $queryString = "( &(objectClass=user) (|{0} {1} ) )" -f @(
+                    ($EmployeeNumber.ForEach({"(employeenumber=$($_.padLeft(6,'0')))"}) -join ' '),
+                    ($SamAccountName.ForEach({"(samaccountname=$_)"}) -join ' ')
+                )
+                Write-Verbose "LDAP Query String: $queryString"
+                $output = Get-ADUser -LDAPfilter $queryString -properties $props |
+                    Select-Object -Property $outputFields
+                if($output.count -gt 1){
+                    Write-Warning "Multiple Users found with the same EmployeeNumber field, please correct this."
+                }
+                Write-Verbose ("Found {0} User(s)" -f (Measure-object -InputObject $output).count)
                 Write-Output $output
             }
         }
