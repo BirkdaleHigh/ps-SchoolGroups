@@ -2,84 +2,61 @@ class SimsUser {
     [string]$Givenname
     [string]$Surname
     [string]$EmployeeNumber
-    [string]$Intake
-    static [string]$DisplayName = "$Givenname $Surname"
+    [string]$YearGroup
+    [string]$DisplayName = ("{0} {1}" -f $this.Givenname,$this.Surname)
+    [string]$Email
+
+    # CSV Imported Object Parameters
+    SimsUser([PSCustomObject]$PipedObject){
+        $this.Givenname      = $PipedObject.forename
+        $this.Surname        = $PipedObject.'Legal Surname'
+        $this.EmployeeNumber = ([int]$PipedObject.adno).toString('000000')
+        $this.YearGroup         = $PipedObject.year
+        $this.DisplayName    = ("{0} {1}" -f $this.Givenname,$this.Surname)
+        $this.Email          = $PipedObject.'Primary Email'
+
+
+    }
+
+    [boolean] validEmail(){
+        if($this.email -notlike '*@birkdalehigh.co.uk'){
+            return $False
+        }
+        $ad = Get-SchoolUser -EmployeeNumber $this.EmployeeNumber
+        if($ad.emailaddress -eq $this.Email){
+            return $True
+        } else {
+            return $False
+        }
+    }
 }
 
 function Import-SimsUser {
     Begin {
         setupModule
-        $simsFields = @(
-            'adno'
-            'Forename'
-            'Legal Surname'
-            'Year'
-        )
     }
     Process {
-        $script:SimsReport |
-            Select-Object -Unique -Property $simsFields |
+        $script:UniqueUsers |
             New-SimsUser
     }
 }
 
 function New-SimsUser {
-    [cmdletBinding(DefaultParameterSetName="Default")]
+    [cmdletBinding()]
     param(
-        # Sims report user list
-        [Parameter(ParameterSetName="Object",
-                   Mandatory=$true,
-                   ValueFromPipeline=$true,
-                   Position=0)]
-        [PSObject]
-        $user
-
-        , # Parameter help description
-        [Parameter(ParameterSetName="Default",
-                   ValueFromPipelineByPropertyName=$true)]
-        [Alias('Adno')]
-        [string]
-        $EmployeeNumber
-
-        , # Parameter help description
-        [Parameter(ParameterSetName="Default",
-                   ValueFromPipelineByPropertyName=$true)]
-        [Alias('Forename')]
-        [string]
-        $Givenname
-
-        , # Parameter help description
-        [Parameter(ParameterSetName="Default",
-                   ValueFromPipelineByPropertyName=$true)]
-        [Alias('Legal Surname')]
-        [string]
-        $Surname
-
-        , # Parameter help description
-        [Parameter(ParameterSetName="Default",
-                   ValueFromPipelineByPropertyName=$true)]
-        [Alias('Year')]
-        [string]
-        $Intake
+        [Parameter(ValueFromPipeline,ValueFromPipelineByPropertyName)]
+        [ValidateNotNullOrEmpty()]
+            $InputObject
         )
     Process {
-        Switch($PSCmdlet.ParameterSetName){
-            'Object' {
-                write-warning "Used Object"
-                $obj = [SimsUser]@{
-                    'Givenname'      = $user.'Forename'
-                    'Surname'        = $user.'Legal Surname'
-                    'EmployeeNumber' = ([int]$user.adno).toString('000000')
-                    'Intake' = $user.'Year'
-                }
-            }
-            Default {
-                write-warning "Used Default"
-                $obj = [SimsUser]$PSBoundParameters
-            }
-        }
-        Write-Output $obj
+        [SimsUser]::new($InputObject)
     }
+}
+
+function Get-IncorrectSimsEmail() {
+    Import-SimsUser |
+        where-object { -not $psitem.validEmail() } |
+        sort-object intake, surname
 }
 
 function New-Report{

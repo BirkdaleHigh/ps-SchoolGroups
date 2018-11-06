@@ -117,3 +117,10 @@ function Reset-ExamAccounts {
         Sort-Object { [int]$_.surname } |
         Format-Table username,password,seatnumber
 }
+
+function Get-EmailListToCorrect {
+    Foreach($user in Get-IncorrectSimsEmail){
+        $address = (Get-SchoolUser -EmployeeNumber $user.EmployeeNumber -errorAction 'SilentlyContinue' | where-object enabled).EmailAddress
+        Add-Member -InputObject $user -NotePropertyName 'CorrectEmail' -NotePropertyValue $address -PassThru
+    }
+}

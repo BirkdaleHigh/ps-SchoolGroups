@@ -3,7 +3,7 @@
     if($Datasource){
         $script:SimsReport = import-csv $Datasource.fullname
 
-        $script:UniqueUsers = $script:SimsReport | Sort-Object -Unique -Property adno | select-object 'Legal Surname','Forename','Adno'
+        $script:UniqueUsers = $script:SimsReport | Sort-Object -Unique -Property adno
 
         $script:ClassMembers = $SimsReport | Where-Object Class -NotLike "CLS *" | Where-Object {-not [string]::IsNullOrEmpty($psitem.class)}
         $script:FormMembers  = $SimsReport | Where-Object Class    -Like "CLS *" | Where-Object {-not [string]::IsNullOrEmpty($psitem.class)}
