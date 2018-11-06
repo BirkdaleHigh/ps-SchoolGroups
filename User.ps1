@@ -51,8 +51,8 @@
                 Write-Verbose "No record found user as $calcUsername, returning this name to use."
                 return $calcUsername
             }
-            if($u.count -eq 0){
-                return $calcUsername
+            if($u.employeeNumber -eq $id){
+                Throw "MIS ID($id) exists as employeenumber: $($u.employeenumber), $($u.samaccountname)"
             }
 
             # Recursive call to this function to test an appended username
