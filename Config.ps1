@@ -19,7 +19,7 @@ function Import-Configuration {
     [CmdletBinding()]
     Param()
     # Defaults
-    $Script:Config = Get-Content -Raw -Path "Configuration.json" | convertfrom-json
+    $Script:Config = Get-Content -Raw -Path (Join-Path $PSScriptRoot "Configuration.json")| convertfrom-json
     $Script:Config | Add-member -NotePropertyName Options -NotePropertyValue (@{
         Path = @($env:CommonProgramFiles, $env:APPDATA)
     })
