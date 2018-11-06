@@ -33,6 +33,7 @@
     )
     Begin{
         function CreateUniqueUser([string]$ID,[string]$Username,[int]$Count,[int]$Max = $Max){
+            Write-Verbose "Test #$count for $Username name collision"
             if($Count -eq 0){
                 $calcUsername = "$Username"
             } else {
@@ -42,16 +43,19 @@
                 Throw "$calcUsername is over 20 characters"
             }
             if($Max -le $Count){
-                Throw "Maximum attempts to find username reached ($MAX)"
+                Throw "Maximum attempts to make $calcUsername without conflict reached ($Max)"
             }
             try {
-                $u = Get-ADUser -LDAPFilter ("(&(objectClass=user)(|(employeenumber={0})(samaccountname={1})))" -f $ID, $calcUsername) -properties EmployeeNumber
+                $u = Get-SchoolUser -EmployeeNumber $ID -SamAccountName $calcUsername
             } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
+                Write-Verbose "No record found user as $calcUsername, returning this name to use."
                 return $calcUsername
             }
             if($u.count -eq 0){
                 return $calcUsername
             }
+
+            # Recursive call to this function to test an appended username
             CreateUniqueUser $ID $Username ($Count + 1)
         }
     }
