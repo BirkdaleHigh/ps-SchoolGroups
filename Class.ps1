@@ -334,36 +334,26 @@ function Sync-ClassMember{
         $users = Test-ClassMember $psitem
         $add = @($users | where-object { $psitem.MIS -and -not $psitem.ADGroup })
         $remove = @($users | where-object MIS -eq $false)
+        $total = [int]($users | where-object adgroup | Measure-Object).count
 
         if(($add.length -eq 0) -and ($remove.length -eq 0)){
-            Write-Verbose (
-                "No change to Class: {0}, Total: {1}" -f @(
-                    $psitem
-                    $users | where-object adgroup | Measure-Object | Select-Object -expandproperty count
-                )
-            )
-        } else {
-            $changeText = "Add {0} Member(s), Remove {1} Member(s)" -f @(
-                $add.length
-                $remove.length
-            )
-            if ($pscmdlet.ShouldProcess($psitem, $changeText)){
-                if($add){
-                    Add-ADGroupMember -Identity $psitem -Members $add > $null
-                }
-                if($remove){
-                    Remove-ADGroupMember -Identity $psitem -Members $remove -confirm:$false
-                }
-            }
+            Write-Verbose "No change to members ($total) in target `"$psitem`""
+            return
+        }
 
-            Write-Verbose (
-                "Class: {0}, New Total: {1}, Add: {2} from MIS, Remove: {3} only in AD." -f @(
-                    $psitem
-                    $users | where-object adgroup | Measure-Object | Select-Object -expandproperty count
-                    $add.length
-                    $remove.length
-                )
-            )
+        $logText = "New Total: {0}, Add: {1} from MIS, Remove: {2} only in AD." -f @(
+            $total
+            $add.length
+            $remove.length
+        )
+
+        if ($pscmdlet.ShouldProcess($psitem, $logText)){
+            if($add){
+                Add-ADGroupMember -Identity $psitem -Members $add > $null
+            }
+            if($remove){
+                Remove-ADGroupMember -Identity $psitem -Members $remove -confirm:$false
+            }
         }
     }
 }
