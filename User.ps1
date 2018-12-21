@@ -472,6 +472,7 @@ function Get-SchoolUser {
     Process{
         switch($PsCmdlet.ParameterSetName){
             'Specific' {
+                Write-Verbose "Specific powershell get-ADUser"
                 $SamAccountName | Get-ADUser -properties $props |
                     Select-Object -Property $outputFields |
                     Write-Output
@@ -479,16 +480,19 @@ function Get-SchoolUser {
             }
             'Search' {
                 $queryString = "(&(objectClass=user)(sn=$Surname)(givenname=$givenname))"
-                Write-Verbose "LDAP Query String: $queryString"
+                Write-Verbose "LDAP Search Query String: $queryString"
                 Get-ADUser -LDAPfilter $queryString -properties $props |
                     Select-Object -Property $outputFields |
                     Write-Output
             }
             'Get1' {
                 $queryString = "(&(objectClass=user)(employeenumber=$( $EmployeeNumber.padLeft(6,'0') )))"
-                Write-Verbose "LDAP Query String: $queryString"
+                Write-Verbose "LDAP Get1 Query String: $queryString"
                 $output = Get-ADUser -LDAPfilter $queryString -properties $props |
                     Select-Object -Property $outputFields
+                if($output.length -eq 0){
+                    throw [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]::new("No user found by employee number")
+                }
                 if($output.length -gt 1){
                     Write-Error "Multiple Users found with the same EmplyeeNumber field, please correct this."
                 }
@@ -500,9 +504,12 @@ function Get-SchoolUser {
                     ($EmployeeNumber.ForEach({"(employeenumber=$($_.padLeft(6,'0')))"}) -join ' '),
                     ($SamAccountName.ForEach({"(samaccountname=$_)"}) -join ' ')
                 )
-                Write-Verbose "LDAP Query String: $queryString"
+                Write-Verbose "LDAP Either Query String: $queryString"
                 $output = Get-ADUser -LDAPfilter $queryString -properties $props |
                     Select-Object -Property $outputFields
+                if($output.length -eq 0){
+                    throw [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]::new("No user found by employee number")
+                }
                 if($output.count -gt 1){
                     Write-Warning "Multiple Users found with the same EmployeeNumber field, please correct this."
                 }
