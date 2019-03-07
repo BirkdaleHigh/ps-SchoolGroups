@@ -1,14 +1,17 @@
 ﻿function New-SchoolUser{
     [cmdletbinding(SupportsShouldProcess=$true)]
     Param(
+        # Users prefferred First name
         [Parameter(Mandatory=$true,
                    ValueFromPipelineByPropertyName=$true)]
         [string]$Givenname,
 
+        # Users preferred Surname
         [Parameter(Mandatory=$true,
                    ValueFromPipelineByPropertyName=$true)]
         [string]$Surname,
 
+        # Unique ID matching MIS source
         [Parameter(Mandatory=$true,
         ValueFromPipelineByPropertyName=$true)]
         [ValidatePattern('^00\d{4}$')]
@@ -72,8 +75,7 @@
             DisplayName = $DisplayName
             EmailAddress = "$username@birkdalehigh.co.uk"
             Path = "OU=$year,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL"
-            ProfilePath = "\\bhs-fs01\profiles$\Students\profile"
-            HomeDirectory = "\\bhs-fs01\home$\Students\$year Students\$username"
+            HomeDirectory = "\\bhs-fs01\home`$\Students\$year Students\$username"
             HomeDrive = 'N:'
             ScriptPath = 'kix32 Students.kix'
             UserPrincipalName = "$username@BHS.INTERNAL"
@@ -88,8 +90,6 @@
                 $account | New-HomeDirectory > $null
             }
         }
-
-
 
         Write-Output $account
 
