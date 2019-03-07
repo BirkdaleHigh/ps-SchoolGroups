@@ -66,6 +66,7 @@
         [string]$year = $intake
 
         $username = CreateUniqueUser -ID $EmployeeNumber -Username ($year.Remove(0,2) + $surname + $Givenname[0])
+        $password = CreatePassword
 
         $user = @{
             EmployeeNumber = $EmployeeNumber
@@ -79,19 +80,22 @@
             HomeDrive = 'N:'
             ScriptPath = 'kix32 Students.kix'
             UserPrincipalName = "$username@BHS.INTERNAL"
-            AccountPassword = ConvertTo-SecureString -AsPlainText -Force "password"
+            AccountPassword = ConvertTo-SecureString -AsPlainText -Force $password
             ChangePasswordAtLogon = $true
             Enabled = $true
         }
         if ($pscmdlet.ShouldProcess($user.name, "New AD User")){
             New-ADUser @user > $null
-            $account = Get-ADUser $username -properties HomeDirectory,EmployeeNumber,EmailAddress
+            $account = Get-SchoolUser $username
             if(-not $NoHome){
                 $account | New-HomeDirectory > $null
             }
-        }
 
-        Write-Output $account
+            Add-member -InputObject $account -NotePropertyName Password -NotePropertyValue $password -force -PassThru |
+            Write-Output
+        } else {
+            Write-Output $user
+        }
 
     }
 }
@@ -246,21 +250,21 @@ function Reset-ADPassword{
     Process{
         $resetList = $Identity | get-aduser -properties employeeNumber,EmailAddress
         foreach ($user in $resetlist) {
-            $password = "reset" + (get-random -Minimum 100 -Maximum 999)
-                if ($pscmdlet.ShouldProcess($user, "Reset Account Password")){
-                    Set-ADAccountPassword -Identity $user.samAccountName -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $password -Force)
-                    Enable-ADAccount -Identity $user.samAccountName
-                    try {
-                        Set-aduser -Identity $user.samAccountName -ChangePasswordAtLogon $true -ErrorAction Stop
-                    } catch {
-                        if($psitem.Exception.message -eq $passwordNeverExpiresException){
-                            Write-Warning $passwordNeverExpiresException.replace('this account', $user.samAccountName)
-                        } else {
-                            throw
-                        }
+            $password = CreatePassword
+            if ($pscmdlet.ShouldProcess($user, "Reset Account Password")){
+                Set-ADAccountPassword -Identity $user.samAccountName -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $password -Force)
+                Enable-ADAccount -Identity $user.samAccountName
+                try {
+                    Set-aduser -Identity $user.samAccountName -ChangePasswordAtLogon $true -ErrorAction Stop
+                } catch {
+                    if($psitem.Exception.message -eq $passwordNeverExpiresException){
+                        Write-Warning $passwordNeverExpiresException.replace('this account', $user.samAccountName)
+                    } else {
+                        throw
                     }
                 }
             }
+        }
         $resetList |
             Select-Object @(
                 @{
@@ -281,6 +285,13 @@ function Reset-ADPassword{
             Add-member -MemberType NoteProperty -Name Password -Value $password -PassThru |
             Write-Output
     }
+}
+
+function CreatePassword {
+    param (
+        $prefix = 'reset'
+    )
+    Write-Output "$Prefix$(get-random -Minimum 100 -Maximum 999)"
 }
 
 function Find-UnchangedPassword {
@@ -304,7 +315,7 @@ function New-HomeDirectory{
                    ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true)]
         [ValidateScript({$psitem.PSobject.Properties.Name -contains "HomeDirectory"})]
-        [Microsoft.ActiveDirectory.Management.ADUser[]]$Identity
+        $Identity
     )
     Process{
         $Identity | where { (Test-HomeDirectory $psitem).result -eq $false } | foreach {
