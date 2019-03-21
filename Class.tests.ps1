@@ -28,6 +28,7 @@ InModuleScope SchoolGroups{
         }
     }
 }
+
 InModuleScope SchoolGroups{
     Describe 'Sync-ClassMember'{
         Mock Test-ClassMember {

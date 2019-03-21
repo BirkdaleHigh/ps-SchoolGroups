@@ -178,7 +178,7 @@ function New-Class{
     Process{
         foreach($class in $name){
             $group = @{
-                'GroupScope' = 'Universal'
+                'GroupScope' = 'Global'
                 'GroupCategory' = 'Security'
                 'PassThru' = $True
                 'Name' = $class

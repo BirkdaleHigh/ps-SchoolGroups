@@ -67,7 +67,7 @@ function Test-FormMember{
         [string]
         $Filter = 'Both'
     )
-    $ADList = Get-ADGroupMember -Identity $Form | get-aduser -Properties EmployeeNumber
+    $ADList = Get-ADGroupMember -Identity $Form | get-aduser -Properties 'EmployeeNumber'
 
     if($ADList -eq $null){
         Write-Warning "No members found in $form from the AD"
@@ -79,10 +79,10 @@ function Test-FormMember{
             Get-FormMember $form
         }
         'AD' {
-            Compare-Object (Get-FormMember $form) $ADList  -IncludeEqual -Property EmployeeNumber -PassThru | where SideIndicator -eq '=>'
+            Compare-Object (Get-FormMember $form) $ADList  -IncludeEqual -Property 'EmployeeNumber' -PassThru | where SideIndicator -eq '=>'
         }
         Default {
-            Compare-Object (Get-FormMember $form) $ADList  -IncludeEqual -Property EmployeeNumber
+            Compare-Object (Get-FormMember $form) $ADList  -IncludeEqual -Property 'EmployeeNumber'
         }
     }
 
@@ -153,13 +153,13 @@ function New-Form{
         $name
     )
     Process{
-        New-ADGroup -GroupScope Global -GroupCategory Security -Name $name -Path 'OU=Form Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL' -PassThru
+        New-ADGroup -GroupScope 'Global' -GroupCategory 'Security' -Name $name -Path 'OU=Form Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL' -PassThru
     }
 }
 
 function Sync-Form{
-    Test-Form -Filter List | New-Form
-    Test-Form -Filter AD | Remove-ADGroup
+    Test-Form -Filter 'List' | New-Form
+    Test-Form -Filter 'AD' | Remove-ADGroup
 }
 function Sync-FormMember{
     <#
@@ -176,6 +176,6 @@ function Sync-FormMember{
         $Name = (Get-Form)
     )
     $Name | ForEach-Object {
-        Add-ADGroupMember -Identity $psitem -Members ($psitem | Test-FormMember -Filter List)
+        Add-ADGroupMember -Identity $psitem -Members ($psitem | Test-FormMember -Filter 'List')
     }
 }
