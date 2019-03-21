@@ -1,0 +1,8 @@
+stages:
+  - test
+
+test:
+  script:
+    - Invoke-Pester
+  tags:
+    - windows
