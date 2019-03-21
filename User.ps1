@@ -1,4 +1,6 @@
-﻿function New-SchoolUser{
+﻿$MAX_RETRY_NEW_USER = 4
+
+function New-SchoolUser{
     [cmdletbinding(SupportsShouldProcess=$true)]
     Param(
         # Users prefferred First name
@@ -32,40 +34,15 @@
 
         # Maximum number of duplicate usernames to increment through when creating accounts
         [ValidateRange(0,[int]::MaxValue)]
-        [int]$Max = 4
+        [int]$Max = $MAX_RETRY_NEW_USER
     )
     Begin{
-        function CreateUniqueUser([string]$ID,[string]$Username,[int]$Count,[int]$Max = $Max){
-            Write-Verbose "Test #$count for $Username name collision"
-            if($Count -eq 0){
-                $calcUsername = "$Username"
-            } else {
-                $calcUsername = "$Username$Count"
-            }
-            if($calcUsername.length -gt 20){ # Max character limit in AD for SamAccountName property is 20
-                Throw "$calcUsername is over 20 characters"
-            }
-            if($Max -le $Count){
-                Throw "Maximum attempts to make $calcUsername without conflict reached ($Max)"
-            }
-            try {
-                $u = Get-SchoolUser -EmployeeNumber $ID -SamAccountName $calcUsername
-            } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
-                Write-Verbose "No record found user as $calcUsername, returning this name to use."
-                return $calcUsername
-            }
-            if($u.employeeNumber -eq $id){
-                Throw "MIS ID($id) exists as employeenumber: $($u.employeenumber), $($u.samaccountname)"
-            }
-
-            # Recursive call to this function to test an appended username
-            CreateUniqueUser $ID $Username ($Count + 1)
-        }
+        
     }
     Process{
         [string]$year = $intake
 
-        $username = CreateUniqueUser -ID $EmployeeNumber -Username ($year.Remove(0,2) + $surname + $Givenname[0])
+        $username = CreateUniqueUser -ID $EmployeeNumber -Username ($year.Remove(0,2) + $surname + $Givenname[0]) -Max $Max
         $password = CreatePassword
 
         $user = @{
@@ -98,6 +75,33 @@
         }
 
     }
+}
+
+function CreateUniqueUser([string]$ID,[string]$Username,[int]$Count,[int]$Max = $MAX_RETRY_NEW_USER){
+    Write-Verbose "Test #$Count for $Username name collision"
+    if($Count -eq 0){
+        $calcUsername = "$Username"
+    } else {
+        $calcUsername = "$Username$Count"
+    }
+    if($calcUsername.length -gt 20){ # Max character limit in AD for SamAccountName property is 20
+        Throw "$calcUsername is over 20 characters"
+    }
+    if($Max -le $Count){
+        Throw "Maximum attempts to make $calcUsername without conflict reached ($Max)"
+    }
+    try {
+        $u = Get-SchoolUser -EmployeeNumber $ID -SamAccountName $calcUsername
+    } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
+        Write-Verbose "No record found user as $calcUsername, returning this name to use."
+        return $calcUsername
+    }
+    if($u.employeeNumber -eq $id){
+        Throw "MIS ID($id) exists as employeenumber: $($u.employeenumber), $($u.samaccountname)"
+    }
+
+    # Recursive call to this function to test an appended username
+    CreateUniqueUser $ID $Username ($Count + 1)
 }
 
 function New-CADirectory{

@@ -1,37 +1,108 @@
-import-module "$PSScriptRoot\SchoolGroups.psm1" -force
-
-# Example 1: https://hastebin.com/guhomecida.rb
-# Example 2: https://hastebin.com/seresoseve.scala
-# Example 3: https://hastebin.com/ixebepagik.php
+remove-module SchoolGroups -force
+import-module "$PSScriptRoot\SchoolGroups.psd1" -force
 
 InModuleScope SchoolGroups {
+    Describe 'Internal Function Testing' {
+        Mock Get-SchoolUser {
+            Throw [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]::New('Mock has no user to return')
+        }
+        Mock Get-SchoolUser {
+            # Test existing user with different MIS ID
+            return @{
+                SamAccountName = '20DuplicateT'
+                employeeNumber = '001112'
+            }
+        } -ParameterFilter { $SamAccountName -eq '20DuplicateT' }
+        Mock Get-SchoolUser {
+            # Test existing user with different MIS ID
+            return @{
+                SamAccountName = '20TripleT'
+                employeeNumber = '001113'
+            }
+        } -ParameterFilter { $SamAccountName -eq '20TripleT' }
+        Mock Get-SchoolUser {
+            # Test existing user with different MIS ID
+            return @{
+                SamAccountName = '20TripleT1'
+                employeeNumber = '001113'
+            }
+        } -ParameterFilter { $SamAccountName -eq '20TripleT1' }
+        Mock Get-SchoolUser {
+            # Test existing user with different MIS ID
+            return @{
+                SamAccountName = '1DuplicatenameLimitT'
+                employeeNumber = '001112'
+            }
+        } -ParameterFilter { $SamAccountName -eq '1DuplicatenameLimitT' }
+
+        Context 'Validate username uniquness algorithm'{
+            It 'When no user already exists return the initial name' {
+                $username = '20userT'
+                CreateUniqueUser -ID '001111' -Username $username | should -eq $username
+                
+                Assert-MockCalled Get-SchoolUser -Exactly 1 -Scope 'It'            
+            }
+            It 'User already exists so append 1 to the username' {
+                $username = '20DuplicateT'
+                CreateUniqueUser -ID '001111' -Username $username | should -eq ($username + '1')
+                
+                Assert-MockCalled Get-SchoolUser -Exactly 2 -Scope 'It'            
+                Assert-MockCalled Get-SchoolUser -Exactly 2 -Scope 'It'            
+            }
+            It 'Appended user already exists so increment the username' {
+                $username = '20TripleT'
+                CreateUniqueUser -ID '001111' -Username $username | should -eq '20TripleT2'
+                
+                Assert-MockCalled Get-SchoolUser -Exactly 3 -Scope 'It'            
+                Assert-MockCalled Get-SchoolUser -Exactly 3 -Scope 'It'            
+            }
+            It 'Throw if the name is unique but the ID is not' {
+                $username = '20DuplicateT'
+                { CreateUniqueUser -ID '001112' -Username $username } | should -Throw
+                
+                Assert-MockCalled Get-SchoolUser -Exactly 1 -Scope 'It'   
+            }
+            It 'Should not allow usernames over the 20 character SamAccountName limit' {
+                $username = '120MaxusernameLimitT'
+                CreateUniqueUser -ID '001111' -Username $username | should -eq $username
+
+                Assert-MockCalled Get-SchoolUser -Exactly 1 -Scope 'It'
+            }
+            It 'Should not allow usernames over the 20 character SamAccountName limit when incrementing' {
+                $username = '1DuplicatenameLimitT'
+                { CreateUniqueUser -ID '001111' -Username $username } | should -Throw
+
+                Assert-MockCalled Get-SchoolUser -Exactly 1 -Scope 'It'
+            }
+        }
+    }
+
     Describe 'New-SchoolUser' {
         Mock ValidateIntake {return $true}
-        Context "Creation"{
-            Mock Get-SchoolUser {
-                Throw [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]::new("User not found")
-            }
-            Mock Get-SchoolUser { # Existing employeeNumber
-                New-Object -TypeName Microsoft.ActiveDirectory.Management.ADUser -Property @{
-                    SamAccountName = $username
-                    EmployeeNumber = $EmployeeNumber
-                    HomeDirectory = 'Test Data'
-                }
-            } -ParameterFilter { $InputObject.EmployeeNumber -eq '002022' }
-            Mock New-ADUser {
-                New-Object -TypeName Microsoft.ActiveDirectory.Management.ADUser -Property @{
+        Mock Get-SchoolUser {
+            New-Object -TypeName Microsoft.ActiveDirectory.Management.ADUser -Property @{
                 SamAccountName = $username
                 EmployeeNumber = $EmployeeNumber
                 HomeDirectory = 'Test Data'
-            }}
-            Mock New-HomeDirectory {}
-            Mock Get-ADUser {$script:NewUser}
-
+            }
+        }
+        Mock New-ADUser {
+            New-Object -TypeName Microsoft.ActiveDirectory.Management.ADUser -Property @{
+                SamAccountName = $username
+                EmployeeNumber = $EmployeeNumber
+                HomeDirectory = 'Test Data'
+            }
+        }
+        Mock CreateUniqueUser {
+            return '10FirstT'
+        }
+        Mock New-HomeDirectory {}
+        Context "Creation"{
             It "Create 1 user"{
                 $account = New-SchoolUser -Givenname "Tester" -Surname "First" -EmployeeNumber '001011' -intake 1910
 
-                Assert-MockCalled New-ADUser -Times 1 -Exactly -Scope 'It'
-                Assert-MockCalled New-HomeDirectory -Times 1 -Exactly -Scope 'It'
+                Assert-MockCalled New-ADUser -Exactly 1 -Scope 'It'
+                Assert-MockCalled New-HomeDirectory -Exactly 1  -Scope 'It'
                 $account.SamAccountName | Should -be "10FirstT"
             }
             It "-NoHome parameter does not call New-HomeDriectory"{
@@ -39,14 +110,7 @@ InModuleScope SchoolGroups {
 
                 Assert-MockCalled New-ADUser -Times 1 -Exactly -Scope 'It'
                 Assert-MockCalled New-HomeDirectory -Times 0 -Exactly -Scope 'It'
-                $account.SamAccountName | Should -be "10SecondT"
-            }
-            It "Does not create a duplicate employeeNumber"{
-                {New-SchoolUser -Givenname "Different" -Surname "User" -EmployeeNumber '002022' -intake 1910} | Should -Throw
-
-                Assert-MockCalled Get-SchoolUser -Times 1 -Exactly -Scope 'It'
-                Assert-MockCalled New-ADUser -Times 0 -Exactly -Scope 'It'
-                Assert-MockCalled New-HomeDirectory -Times 0 -Exactly -Scope 'It'
+                $account.SamAccountName | Should -be "10FirstT"
             }
             It "Catch incorrect EmployeeID formats"{
                 {New-SchoolUser -Givenname "Different" -Surname "User" -EmployeeNumber '00101' -intake 1910} | Should -Throw
@@ -56,10 +120,6 @@ InModuleScope SchoolGroups {
                 Assert-MockCalled New-ADUser -Times 0 -Exactly -Scope 'It'
                 Assert-MockCalled New-HomeDirectory -Times 0 -Exactly -Scope 'It'
             }
-            It "Increment the username number for duplicates"{
-                Throw "TODO"
-            }
-
         }
     }
 }
