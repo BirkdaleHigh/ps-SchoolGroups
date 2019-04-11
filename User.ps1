@@ -247,6 +247,9 @@ function Reset-ADPassword{
                    ValueFromPipeline=$true,
                    ValueFromPipelineByPropertyName=$true)]
         [Microsoft.ActiveDirectory.Management.ADUser[]]$Identity
+
+        , #
+        $Prefix = 'birkdale'
     )
     Begin {
         $passwordNeverExpiresException = "'PasswordNeverExpires' for this account is set to true. The account will not be required to change the password at next logon."
@@ -254,7 +257,7 @@ function Reset-ADPassword{
     Process{
         $resetList = $Identity | get-aduser -properties employeeNumber,EmailAddress
         foreach ($user in $resetlist) {
-            $password = CreatePassword
+            $password = CreatePassword -prefix $Prefix
             if ($pscmdlet.ShouldProcess($user, "Reset Account Password")){
                 Set-ADAccountPassword -Identity $user.samAccountName -Reset -NewPassword (ConvertTo-SecureString -AsPlainText $password -Force)
                 Enable-ADAccount -Identity $user.samAccountName
@@ -293,9 +296,9 @@ function Reset-ADPassword{
 
 function CreatePassword {
     param (
-        $prefix = 'reset'
+        $prefix = 'birkdale'
     )
-    Write-Output "$Prefix$(get-random -Minimum 100 -Maximum 999)"
+    Write-Output "$Prefix$(get-random -Minimum 1000 -Maximum 9999)"
 }
 
 function Find-UnchangedPassword {
