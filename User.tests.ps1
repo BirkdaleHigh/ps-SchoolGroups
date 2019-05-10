@@ -38,39 +38,39 @@ InModuleScope SchoolGroups {
         Context 'Validate username uniquness algorithm'{
             It 'When no user already exists return the initial name' {
                 $username = '20userT'
-                CreateUniqueUser -ID '001111' -Username $username | should -eq $username
+                CreateUsername -Username $username | should -eq $username
                 
                 Assert-MockCalled Get-SchoolUser -Exactly 1 -Scope 'It'            
             }
             It 'User already exists so append 1 to the username' {
                 $username = '20DuplicateT'
-                CreateUniqueUser -ID '001111' -Username $username | should -eq ($username + '1')
+                CreateUsername -Username $username | should -eq ($username + '1')
                 
                 Assert-MockCalled Get-SchoolUser -Exactly 2 -Scope 'It'            
                 Assert-MockCalled Get-SchoolUser -Exactly 2 -Scope 'It'            
             }
             It 'Appended user already exists so increment the username' {
                 $username = '20TripleT'
-                CreateUniqueUser -ID '001111' -Username $username | should -eq '20TripleT2'
+                CreateUsername -Username $username | should -eq '20TripleT2'
                 
                 Assert-MockCalled Get-SchoolUser -Exactly 3 -Scope 'It'            
                 Assert-MockCalled Get-SchoolUser -Exactly 3 -Scope 'It'            
             }
             It 'Throw if the name is unique but the ID is not' {
                 $username = '20DuplicateT'
-                { CreateUniqueUser -ID '001112' -Username $username } | should -Throw
+                { CreateUsername -ID '001112' -Username $username } | should -Throw
                 
                 Assert-MockCalled Get-SchoolUser -Exactly 1 -Scope 'It'   
             }
             It 'Should not allow usernames over the 20 character SamAccountName limit' {
                 $username = '120MaxusernameLimitT'
-                CreateUniqueUser -ID '001111' -Username $username | should -eq $username
+                CreateUsername -Username $username | should -eq $username
 
                 Assert-MockCalled Get-SchoolUser -Exactly 1 -Scope 'It'
             }
             It 'Should not allow usernames over the 20 character SamAccountName limit when incrementing' {
                 $username = '1DuplicatenameLimitT'
-                { CreateUniqueUser -ID '001111' -Username $username } | should -Throw
+                { CreateUsername -Username $username } | should -Throw
 
                 Assert-MockCalled Get-SchoolUser -Exactly 1 -Scope 'It'
             }
@@ -93,7 +93,7 @@ InModuleScope SchoolGroups {
                 HomeDirectory = 'Test Data'
             }
         }
-        Mock CreateUniqueUser {
+        Mock CreateUsername {
             return '10FirstT'
         }
         Mock New-HomeDirectory {}

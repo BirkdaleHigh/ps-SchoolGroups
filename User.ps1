@@ -17,6 +17,14 @@ function New-SchoolUser{
         [Parameter(Mandatory=$true,
         ValueFromPipelineByPropertyName=$true)]
         [ValidatePattern('^00\d{4}$')]
+        [ValidateScript({
+            try {
+                $existing = Get-SchoolUser EmployeeNumber $psItem
+            } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
+                return $true
+            }
+            Throw "MIS ID($psItem) exists as employeenumber: $($existing.employeenumber), $($existing.samaccountname)"
+        })]
         [string]$EmployeeNumber,
 
         [Parameter(ValueFromPipelineByPropertyName=$true)]
@@ -42,7 +50,7 @@ function New-SchoolUser{
     Process{
         [string]$year = $intake
 
-        $username = CreateUniqueUser -ID $EmployeeNumber -Username ($year.Remove(0,2) + $surname + $Givenname[0]) -Max $Max
+        $username = CreateUsername -Username ($year.Remove(0,2) + $surname + $Givenname[0]) -Max $Max
         $password = CreatePassword
 
         $user = @{
@@ -61,23 +69,122 @@ function New-SchoolUser{
             ChangePasswordAtLogon = $true
             Enabled = $true
         }
-        if ($pscmdlet.ShouldProcess($user.name, "New AD User")){
-            New-ADUser @user > $null
-            $account = Get-SchoolUser $username
-            if(-not $NoHome){
-                $account | New-HomeDirectory > $null
-            }
 
-            Add-member -InputObject $account -NotePropertyName Password -NotePropertyValue $password -force -PassThru |
-            Write-Output
-        } else {
-            Write-Output $user
-        }
-
+        CreateADUser -UserObject $user -Password:$password
     }
 }
 
-function CreateUniqueUser([string]$ID,[string]$Username,[int]$Count,[int]$Max = $MAX_RETRY_NEW_USER){
+function New-SchoolUserStudent{
+    [cmdletbinding(SupportsShouldProcess=$true)]
+    Param(
+        # Users prefferred First name
+        [Parameter(Mandatory=$true,
+                   ValueFromPipelineByPropertyName=$true)]
+        [string]$Givenname,
+
+        # Users preferred Surname
+        [Parameter(Mandatory=$true,
+                   ValueFromPipelineByPropertyName=$true)]
+        [string]$Surname,
+
+        # Maximum number of duplicate usernames to increment through when creating accounts
+        [ValidateRange(0,[int]::MaxValue)]
+        [int]$Max = $MAX_RETRY_NEW_USER
+
+        , $EmployeeNumber
+    )
+    Begin{
+        
+    }
+    Process{
+
+        $username = CreateUsername -Username ($year.Remove(0,2) + $surname + $Givenname[0]) -Max $Max
+        $password = CreatePassword
+
+        $user = @{
+            EmployeeNumber = $EmployeeNumber
+            GivenName = $Givenname
+            Surname = $surname
+            name = $username
+            DisplayName = $DisplayName
+            EmailAddress = "$username@birkdalehigh.co.uk"
+            Path = "OU=$year,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL"
+            HomeDirectory = "\\bhs-fs01\home`$\Students\$year Students\$username"
+            HomeDrive = 'N:'
+            ScriptPath = 'kix32 Students.kix'
+            UserPrincipalName = "$username@BHS.INTERNAL"
+            AccountPassword = ConvertTo-SecureString -AsPlainText -Force $password
+            ChangePasswordAtLogon = $true
+            Enabled = $true
+        }
+
+        CreateADUser -UserObject $user -Password:$password
+    }
+}
+
+function New-SchoolUserExam{
+    [cmdletbinding(SupportsShouldProcess=$true)]
+    Param(
+        # Users prefferred First name
+        [Parameter(Mandatory=$true,
+                   ValueFromPipelineByPropertyName=$true)]
+        [string]$Givenname,
+
+        # Users preferred Surname
+        [Parameter(Mandatory=$true,
+                   ValueFromPipelineByPropertyName=$true)]
+        [string]$Surname,
+
+        # Maximum number of duplicate usernames to increment through when creating accounts
+        [ValidateRange(0,[int]::MaxValue)]
+        [int]$Max = $MAX_RETRY_NEW_USER
+    )
+    Begin{
+        
+    }
+    Process{
+
+        $username = CreateUsername -Username ($year.Remove(0,2) + $surname + $Givenname[0]) -Max $Max
+        $password = CreatePassword
+
+        $user = @{
+            GivenName = $Givenname
+            Surname = $surname
+            name = $username
+            DisplayName = "$Givenname $Surname"
+            EmailAddress = "$username@birkdalehigh.co.uk"
+            Path = "OU=Exams,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL"
+            HomeDirectory = "\\bhs-fs01\home`$\Exams\$username"
+            HomeDrive = 'N:'
+            UserPrincipalName = "$username@BHS.INTERNAL"
+            AccountPassword = ConvertTo-SecureString -AsPlainText -Force $password
+            Enabled = $true
+        }
+        CreateADUser -UserObject $user -Password:$password
+    }
+}
+
+function CreateADUser {
+    [cmdletbinding(SupportsShouldProcess=$true)]
+    Param(
+        $userObject,
+        $password
+    )
+    Process {
+        if ($pscmdlet.ShouldProcess($user.name, "New AD User")){
+            New-ADUser @user > $null
+            $account = Get-SchoolUser $user.name
+            $account | New-HomeDirectory > $null
+
+            if($password){
+                Add-member -InputObject $account -NotePropertyName Password -NotePropertyValue $password -force
+            }
+        }
+        Write-Output $user
+    }
+}
+
+function CreateUsername([string]$Username,[int]$Count,[int]$Max = $MAX_RETRY_NEW_USER){
     Write-Verbose "Test #$Count for $Username name collision"
     if($Count -eq 0){
         $calcUsername = "$Username"
@@ -91,17 +198,15 @@ function CreateUniqueUser([string]$ID,[string]$Username,[int]$Count,[int]$Max = 
         Throw "Maximum attempts to make $calcUsername without conflict reached ($Max)"
     }
     try {
-        $u = Get-SchoolUser -EmployeeNumber $ID -SamAccountName $calcUsername
+        $u = Get-SchoolUser -SamAccountName $calcUsername
     } catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
         Write-Verbose "No record found user as $calcUsername, returning this name to use."
         return $calcUsername
     }
-    if($u.employeeNumber -eq $id){
-        Throw "MIS ID($id) exists as employeenumber: $($u.employeenumber), $($u.samaccountname)"
-    }
+    Write-Warning "Changed username. Found existing user as $($u.samaccountname)"
 
     # Recursive call to this function to test an appended username
-    CreateUniqueUser $ID $Username ($Count + 1)
+    CreateUsername $Username ($Count + 1)
 }
 
 function New-CADirectory{
