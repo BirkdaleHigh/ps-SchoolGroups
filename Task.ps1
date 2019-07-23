@@ -6,15 +6,15 @@
 
 # Register a scheduled task to sync users
 #1. create action
-    #a. Apply adno to users
-    #b. Sync class/form groups
-    #c sync class/form group members
+#a. Apply adno to users
+#b. Sync class/form groups
+#c sync class/form group members
 #2. create trigger
-    #a. watch report for changes
+#a. watch report for changes
 #3. register task
-    #a register report to run
+#a register report to run
 
-Function Start-Sync(){
+Function Start-Sync() {
     <#
     .SYNOPSIS
         Begin syncing the groups and users.
@@ -35,16 +35,16 @@ Function Start-Sync(){
 
 function Start-UpdateEmployeeNumber {
     Param(
-        [ValidateScript({ foreach($year in $psitem){ ValidateIntake $year} })]
+        [ValidateScript( { foreach ($year in $psitem) { ValidateIntake $year } })]
         [int[]]
         $Intake
     )
-    foreach($year in $Intake){
+    foreach ($year in $Intake) {
         Get-MissingEmployeeNumber -intake $year -PassThru | Search-MISAdmissionNumber | Update-EmployeeNumber
     }
 }
 
-function start-classSync(){
+function start-classSync() {
     <#
     .SYNOPSIS
         Short description
@@ -63,7 +63,7 @@ function start-classSync(){
     Sync-Class
 }
 
-Function Import-NewIntake{
+Function Import-NewIntake {
     <#
     .SYNOPSIS
     Overall task to setup the new student year from sims
@@ -81,7 +81,7 @@ Function Import-NewIntake{
     $ad | New-SchoolUser
 }
 
-function Reset-AllIntakePassword{
+function Reset-AllIntakePassword {
     <#
     .SYNOPSIS
         Reset all AD Passwords for an intake year
@@ -93,34 +93,91 @@ function Reset-AllIntakePassword{
         C:\PS> Reset-AllIntakePassword -Intake 2016 | export-csv -NoTypeInformation ".\2016-users.csv"
         Reset all AD account passwords for the 2016 intake year OU and create CSV file of the accounts information including passwords.
     #>
-    [CmdletBinding(SupportsShouldProcess=$true,
-                   ConfirmImpact='High')]
+    [CmdletBinding(SupportsShouldProcess = $true,
+        ConfirmImpact = 'High')]
     Param(
-        [Parameter(Mandatory=$true,
-                   Position=0,
-                   ValueFromPipeline=$true,
-                   ValueFromPipelineByPropertyName=$true)]
-        [ValidateScript({ValidateIntake $psitem})]
+        [Parameter(Mandatory = $true,
+            Position = 0,
+            ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true)]
+        [ValidateScript( { ValidateIntake $psitem })]
         [string]$Intake
     )
     Process {
-        if ($pscmdlet.ShouldProcess("All users in $intake year", "Reset AD password")){
+        if ($pscmdlet.ShouldProcess("All users in $intake year", "Reset AD password")) {
             Get-ADUser -SearchBase "OU=$intake,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL" | Reset-ADPassword
         }
     }
 }
 
-function Reset-ExamAccounts {
-    Param()
-    Get-ADUser -Filter * -SearchBase 'OU=Exams,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL' |
+. "$PSScriptRoot\User.ps1"
+function Reset-ExamAccount {
+    Param(
+        # Reset specific exam account
+        [ValidateRange(0,[int]::MaxValue)]
+        [int[]]$Number
+    )
+    $Number | 
+        Get-ExamUser |
         Reset-ADPassword |
         Sort-Object { [int]$_.surname } |
-        Format-Table username,password,seatnumber
+        Format-Table username, password, seatnumber
 }
 
 function Get-EmailListToCorrect {
-    Foreach($user in Get-IncorrectSimsEmail){
+    Foreach ($user in Get-IncorrectSimsEmail) {
         $address = (Get-SchoolUser -EmployeeNumber $user.EmployeeNumber -errorAction 'SilentlyContinue' | where-object enabled).EmailAddress
         Add-Member -InputObject $user -NotePropertyName 'CorrectEmail' -NotePropertyValue $address -PassThru
+    }
+}
+
+
+function New-SchoolUser {
+    [cmdletbinding(SupportsShouldProcess, DefaultParameterSetName = "Default")]
+    Param(
+        # Users prefferred First name
+        [Parameter(Mandatory,
+            ValueFromPipelineByPropertyName)]
+        [string]$Givenname,
+
+        # Users preferred Surname
+        [Parameter(Mandatory,
+            ValueFromPipelineByPropertyName)]
+        [string]$Surname,
+
+        # Unique ID matching MIS source
+        [Parameter(Mandatory,
+            ValueFromPipelineByPropertyName,
+            ParameterSetName = "student")]
+        [ValidatePattern('^00\d{4}$')]
+        [string]$EmployeeNumber,
+
+        [Parameter(ValueFromPipelineByPropertyName)]
+        [string]$DisplayName = "$Givenname $Surname",
+
+        [Parameter(Mandatory,
+            Position = 0,
+            ValueFromPipeline,
+            ValueFromPipelineByPropertyName,
+            ParameterSetName = "student")]
+        [ValidateScript( { ValidateIntake $psitem })]
+        [string]$intake,
+
+        # Maximum number of duplicate usernames to increment through when creating accounts
+        [ValidateRange(0, [int]::MaxValue)]
+        [int]$Max = $MAX_RETRY_NEW_USER -or 4,
+
+        # Total number of exam accounts to have created
+        [Parameter(ParameterSetName="Default")]
+        [ValidateSet("Student", "Staff", "Exam")]
+        [string]$Type = "Student"
+    )
+    Process {
+        $PSBoundParameters.remove('Type')
+        switch ($Type) {
+            "student" { New-Student @PSBoundParameters }
+            "exam"    { New-ExamUser @PSBoundParameters }
+            Default   { New-Staff @PSBoundParameters }
+        }
     }
 }
