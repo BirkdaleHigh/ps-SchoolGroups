@@ -112,7 +112,7 @@ function New-Student{
             Enabled = $true
         }
 
-        CreateADUser -UserObject $user -Password:$password
+        CreateADUser -UserObject $user -Password:$password | Add-GroupStudent
     }
 }
 

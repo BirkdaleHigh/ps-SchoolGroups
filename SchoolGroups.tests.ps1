@@ -94,6 +94,9 @@ InModuleScope SchoolGroups {
             return '10FirstT'
         }
         Mock New-HomeDirectory {}
+        Mock Add-GroupStudent {
+            return $psitem
+        }
         Context "Creation"{
             It "Create 1 user"{
                 $account = New-SchoolUser -Givenname "Tester" -Surname "First" -EmployeeNumber '001011' -intake 1910

@@ -167,7 +167,7 @@ function New-SchoolUser {
         [ValidateRange(0, [int]::MaxValue)]
         [int]$Max = $MAX_RETRY_NEW_USER -or 4,
 
-        # Total number of exam accounts to have created
+        # Account type to be processed
         [Parameter(ParameterSetName="Default")]
         [ValidateSet("Student", "Staff", "Exam")]
         [string]$Type = "Student"
