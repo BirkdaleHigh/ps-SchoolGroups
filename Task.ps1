@@ -146,11 +146,14 @@ function New-SchoolUser {
         [string]$Surname,
 
         # Unique ID matching MIS source
-        [Parameter(Mandatory,
-            ValueFromPipelineByPropertyName,
+        [Parameter(ValueFromPipelineByPropertyName,
             ParameterSetName = "student")]
         [ValidatePattern('^00\d{4}$')]
         [string]$EmployeeNumber,
+
+        # Unique ID from MIS DB source
+        [Parameter(ValueFromPipelineByPropertyName)]
+        [int]$ID,
 
         [Parameter(ValueFromPipelineByPropertyName)]
         [string]$DisplayName = "$Givenname $Surname",

@@ -49,7 +49,7 @@ function New-Staff{
 }
 
 function New-Student{
-    [cmdletbinding(SupportsShouldProcess=$true)]
+    [cmdletbinding(SupportsShouldProcess=$true,DefaultParameterSetName="Default")]
     Param(
         # Users prefferred First name
         [Parameter(Mandatory=$true,
@@ -62,8 +62,7 @@ function New-Student{
         [string]$Surname,
 
         # Unique ID matching MIS source
-        [Parameter(Mandatory=$true,
-        ValueFromPipelineByPropertyName=$true)]
+        [Parameter(ValueFromPipelineByPropertyName=$true)]
         [ValidatePattern('^00\d{4}$')]
         [ValidateScript({
             try {
@@ -80,12 +79,27 @@ function New-Student{
         Position=0,
         ValueFromPipeline=$true,
         ValueFromPipelineByPropertyName=$true)]
+        [Parameter(ParameterSetName="preAdmission",
+        Position=1,
+        ValueFromPipeline=$true,
+        ValueFromPipelineByPropertyName=$true)]
         [ValidateScript({ValidateIntake $psitem})]
         [string]$intake,
-
+        
         # Maximum number of duplicate usernames to increment through when creating accounts
         [ValidateRange(0,[int]::MaxValue)]
-        [int]$Max = $MAX_RETRY_NEW_USER
+        [int]$Max = $MAX_RETRY_NEW_USER,
+
+        # ID number from MIS
+        [Parameter(Position=1,
+        ValueFromPipeline=$true,
+        ValueFromPipelineByPropertyName=$true)]
+        [Parameter(ParameterSetName="preAdmission",
+        Position=0,
+        Mandatory,
+        ValueFromPipeline=$true,
+        ValueFromPipelineByPropertyName=$true)]
+        [int]$ID
     )
     Begin{
         
@@ -96,20 +110,27 @@ function New-Student{
         $password = CreatePassword
 
         $user = @{
-            EmployeeNumber = $EmployeeNumber
+            Office = [string]$ID # field re-used by Edulink for an ID
+            EmployeeID = [string]$ID # field should be used by Edulink for a person ID, and for staff
             GivenName = $Givenname
             Surname = $surname
             name = $username
-            DisplayName = $DisplayName
+            DisplayName = $Givenname
             EmailAddress = "$username@birkdalehigh.co.uk"
-            Path = "OU=$year,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL"
-            HomeDirectory = "\\bhs-fs01\home`$\Students\$year Students\$username"
+            Path = "OU=$intake,OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL"
+            HomeDirectory = "\\bhs-fs01\home`$\Students\$intake Students\$username"
             HomeDrive = 'N:'
             ScriptPath = 'kix32 Students.kix'
             UserPrincipalName = "$username@BHS.INTERNAL"
+            SamAccountName = $username
             AccountPassword = ConvertTo-SecureString -AsPlainText -Force $password
             ChangePasswordAtLogon = $true
             Enabled = $true
+        }
+        if($EmployeeNumber){
+            # EmployeeNumber used as ADNO from MIS that's more appropriete for class data
+            # Students only however, and doesn't exist until on-roll, and UPN is too PII as we as may not exist from primary school import
+            Add-Member -InputObject $user -NotePropertyName 'EmployeeNumber' -NotePropertyValue $EmployeeNumber
         }
 
         CreateADUser -UserObject $user -Password:$password | Add-GroupStudent
@@ -171,9 +192,8 @@ function CreateADUser {
     )
     Process {
         if ($pscmdlet.ShouldProcess($user.name, "New AD User")){
-            New-ADUser @userObject > $null
+            $result = New-ADUser @userObject
             $account = Get-SchoolUser $userObject.name
-            $account | New-HomeDirectory > $null
 
             if($password){
                 Add-member -InputObject $account -NotePropertyName Password -NotePropertyValue $password -force
@@ -189,6 +209,9 @@ function CreateUsername([string]$Username,[int]$Count,[int]$Max = $MAX_RETRY_NEW
         $calcUsername = "$Username"
     } else {
         $calcUsername = "$Username$Count"
+    }
+    if($calcUsername -match "['\s]" ){ # Strip spaces and appostrophies from usernames
+        $calcUsername = $calcUsername.replace("'", '').replace(" ", '')
     }
     if($calcUsername.length -gt 20){ # Max character limit in AD for SamAccountName property is 20
         Throw "$calcUsername is over 20 characters"
@@ -258,7 +281,7 @@ function New-CADirectory{
         [string]$SubjectName
     )
     Begin {
-        [string]$year = $intake
+        [string]$intake = $intake
         [string]$PathRoot = "\\bhs-fs01\CA\Intake $Year"
         [string]$PathSubject = join-path $PathRoot $SubjectName
 
@@ -429,22 +452,24 @@ function New-HomeDirectory{
         $Identity
     )
     Process{
-        $Identity | where { (Test-HomeDirectory $psitem).result -eq $false } | foreach {
-            $location = New-Item -ItemType Directory -Path $psitem.homeDirectory
+        $Identity |
+            where-Object { (Test-HomeDirectory $psitem).result -eq $false } |
+            foreach-Object {
+                $location = New-Item -ItemType Directory -Path $psitem.homeDirectory
 
-            $Propagation = [System.Security.AccessControl.PropagationFlags]::None
-            $Type =[System.Security.AccessControl.AccessControlType]::Allow
-            $Principal = New-Object System.Security.Principal.NTAccount($psitem.samAccountName)
+                $Propagation = [System.Security.AccessControl.PropagationFlags]::None
+                $Type =[System.Security.AccessControl.AccessControlType]::Allow
+                $Principal = New-Object System.Security.Principal.NTAccount($psitem.samAccountName)
 
-            $Entry = New-Object System.Security.AccessControl.FileSystemAccessRule($Principal, 'FullControl', 'ContainerInherit,ObjectInherit', $Propagation, $Type)
+                $Entry = New-Object System.Security.AccessControl.FileSystemAccessRule($Principal, 'Modify', 'ContainerInherit,ObjectInherit', $Propagation, $Type)
 
-            $ACL = Get-ACL $location
-            $ACL.AddAccessRule($Entry)
+                $ACL = Get-ACL $location
+                $ACL.AddAccessRule($Entry)
 
-            Set-ACL $psitem.homeDirectory $ACL
+                Set-ACL $psitem.homeDirectory $ACL
 
-            Write-Output $location
-        }
+                Write-Output $location
+            }
     }
 }
 
@@ -576,12 +601,20 @@ function Get-SchoolUser {
         [Alias("AdmissionNumber","Adno")]
         [string[]]
         $EmployeeNumber
+
+        , # MIS Record ID/Employee Number
+        [Parameter(Position=0, Mandatory, ParameterSetName='GetID', ValueFromPipelineByPropertyName, ValueFromPipeline)]
+        [ValidateLength(1,6)]
+        [Alias("physicalDeliveryOfficeName")]
+        [int[]]
+        $ID
     )
     Begin{
         $props = @(
             'HomeDirectory',
             'EmployeeNumber',
-            'EmailAddress'
+            'EmailAddress',
+            'physicalDeliveryOfficeName'
         )
         $outputFields = @(
             'GivenName',
@@ -608,7 +641,7 @@ function Get-SchoolUser {
                     Write-Output
             }
             'Get1' {
-                $queryString = "(&(objectClass=user)(employeenumber=$( $EmployeeNumber.padLeft(6,'0') )))"
+                $queryString = "(|(objectClass=user)(employeenumber=$( $EmployeeNumber.padLeft(6,'0') )))"
                 Write-Verbose "LDAP Get1 Query String: $queryString"
                 $output = Get-ADUser -LDAPfilter $queryString -properties $props |
                     Select-Object -Property $outputFields
@@ -617,6 +650,20 @@ function Get-SchoolUser {
                 }
                 if($output.length -gt 1){
                     Write-Error "Multiple Users found with the same EmplyeeNumber field, please correct this."
+                }
+                Write-Verbose ("Found {0} User(s)" -f (Measure-object -InputObject $output).count)
+                Write-Output $output
+            }
+            'GetID' {
+                $queryString = "(&(physicalDeliveryOfficeName=$( $physicalDeliveryOfficeName )))"
+                Write-Verbose "LDAP GetID Query String: $queryString"
+                $output = Get-ADUser -LDAPfilter $queryString -properties $props |
+                    Select-Object -Property $outputFields
+                if($output.length -eq 0){
+                    throw [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]::new("No user found by physicalDeliveryOfficeName")
+                }
+                if($output.length -gt 1){
+                    Write-Error "Multiple Users found with the same physicalDeliveryOfficeName field, please correct this."
                 }
                 Write-Verbose ("Found {0} User(s)" -f (Measure-object -InputObject $output).count)
                 Write-Output $output
