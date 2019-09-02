@@ -2,6 +2,7 @@ class SimsUser {
     [string]$Givenname
     [string]$Surname
     [string]$EmployeeNumber
+    [int]$EmployeeID
     [string]$YearGroup
     [string]$DisplayName = ("{0} {1}" -f $this.Givenname,$this.Surname)
     [string]$Email
@@ -11,11 +12,10 @@ class SimsUser {
         $this.Givenname      = $PipedObject.forename
         $this.Surname        = $PipedObject.'Legal Surname'
         $this.EmployeeNumber = ([int]$PipedObject.adno).toString('000000')
-        $this.YearGroup         = $PipedObject.year
+        $this.EmployeeID     = [int]$PipedObject.Person_id # Person_id from students report, just id when from pre-admission report
+        $this.YearGroup      = $PipedObject.year
         $this.DisplayName    = ("{0} {1}" -f $this.Givenname,$this.Surname)
         $this.Email          = $PipedObject.'Primary Email'
-
-
     }
 
     [boolean] validEmail(){
@@ -97,7 +97,7 @@ function New-Report{
         [Parameter()]
         [ValidateNotNullOrEmpty()]
         [string]
-        $Name = "All Student Class Memberships"
+        $Name = "Student ID Class Membership"
 
         , # Secify a Sims.net username to run as
         [Parameter(ParameterSetName='User')]
@@ -125,7 +125,7 @@ function New-Report{
     $command += "/OUTPUT:`"$Destination`""
 
     write-Debug ("Executable Path: " +$Executable)
-    start-process -FilePath $Executable -ArgumentList $command -Wait
+    Start-Process -FilePath $Executable -ArgumentList $command -Wait -RedirectStandardError (join-path $env:TEMP "ClassMembers-SimsErrorOutput.log")
 
     get-item $Destination | write-output
 }

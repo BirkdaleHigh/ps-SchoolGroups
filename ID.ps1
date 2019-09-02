@@ -1,10 +1,10 @@
-﻿function Get-MissingEmployeeNumber{
+﻿function Get-MissingEmployeeID{
     <#
     .SYNOPSIS
-    Are user accounts missing EmployeeNumbers
+    Are user accounts missing EmployeeIDs
 
     .DESCRIPTION
-    Search an entire year (which is shorthand to the OU) for enabled user accounts without the EmployeeNumber filled in.
+    Search an entire year (which is shorthand to the OU) for enabled user accounts without the EmployeeID filled in.
 
     Employee Number is the unique Admission number from our MIS, and is the linchpin around how users are identified across IT systems.
 
@@ -14,21 +14,21 @@
     Return user AD objects with a missing employee number
 
     .EXAMPLE
-    Get-MissingEmployeeNumber -intake 2017
+    Get-MissingEmployeeID -intake 2017
     success
 
-    No users are missing an employeenumber field
+    No users are missing an EmployeeID field
 
     .EXAMPLE
-    Get-MissingEmployeeNumber -intake 2016
+    Get-MissingEmployeeID -intake 2016
     incorrect: 1
 
-    One user is missing an EmployeeNumber
+    One user is missing an EmployeeID
     .EXAMPLE
-    Get-MissingEmployeeNumber -intake 2016 -PassThru
+    Get-MissingEmployeeID -intake 2016 -PassThru
 
     DistinguishedName : CN=16TestA,OU=2016,OU=...
-    EmployeeNumber    :
+    EmployeeID        :
     Enabled           : True
     GivenName         : Account
     Name              : 16TestA
@@ -51,9 +51,9 @@
         [string]$intake = (get-date).year
     )
     $userFilter = @{
-        Filter = '(enabled -eq $true) -and (employeeNumber -notlike "*")'
+        Filter = '(enabled -eq $true) -and (EmployeeID -notlike "*")'
         SearchBase = "OU=$intake,$($script:config.ou.students)"
-        Properties = 'employeeNumber'
+        Properties = 'EmployeeID'
     }
     Write-Verbose "Query for enabled users under OU: $($userFilter.SearchBase)"
 
@@ -64,16 +64,16 @@
             Measure-Object |
             Select-Object -ExpandProperty Count
         if($Numbered -eq 0){
-            "All enabled accounts have an EmployeeNumber for intake: $intake"
+            "All enabled accounts have an EmployeeID for intake: $intake"
         } else {
-            "Incorrect: $numbered missing EmployeeNumbers for intake: $intake"
+            "Incorrect: $numbered missing EmployeeIDs for intake: $intake"
         }
     } else {
         Write-Output $users
     }
 }
 
-function Search-MISAdmissionNumber{
+function Search-MISID{
     [CmdletBinding()]
     Param(
         # Active Directory account of user
@@ -87,7 +87,7 @@ function Search-MISAdmissionNumber{
         ForEach($ADUser in $Identity){
             $script:UniqueUsers | Foreach-Object {
                 if( ($ADUser.givenname -eq $psitem.Forename) -and ($ADUser.surname -eq $psitem.Surname.replace("`'",'').replace(" ",'-')) ){
-                    $ADUser.EmployeeNumber = $psitem.adno
+                    $ADUser.EmployeeID = $psitem.Person_id
                     write-output $ADUser
                 }
             }
@@ -95,18 +95,18 @@ function Search-MISAdmissionNumber{
     }
 }
 
-function Update-EmployeeNumber {
+function Update-EmployeeID {
     [CmdletBinding()]
     Param(
         # Active Directory account of user
         [Parameter(Mandatory,ValueFromPipeline,ValueFromPipelineByPropertyName)]
-        [ValidateScript({$psitem.PSobject.Properties.Name -contains "EmployeeNumber"})]
+        [ValidateScript({$psitem.PSobject.Properties.Name -contains "EmployeeID"})]
         [Microsoft.ActiveDirectory.Management.ADUser[]]$Identity
     )
     Process{
         ForEach ($User in $Identity) {
             try{
-                Set-ADUser -identity $User.DistinguishedName -add @{EmployeeNumber = $User.EmployeeNumber} -ErrorAction Stop
+                Set-ADUser -identity $User.DistinguishedName -add @{EmployeeID = $User.EmployeeID} -ErrorAction Stop
             } catch {
                 Throw $psitem
             }

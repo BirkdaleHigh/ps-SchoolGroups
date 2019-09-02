@@ -53,6 +53,7 @@ setupModule
 . "$PSScriptRoot\Form.ps1"
 . "$PSScriptRoot\Class.ps1"
 . "$PSScriptRoot\Adno.ps1"
+. "$PSScriptRoot\ID.ps1"
 . "$PSScriptRoot\User.ps1"
 . "$PSScriptRoot\Group.ps1"
 . "$PSScriptRoot\Sims.ps1"
