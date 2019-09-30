@@ -184,7 +184,7 @@ function New-Class{
                 'Name' = $class
                 'Path' = 'OU=Class Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL'
             }
-            New-ADGroup @group
+            New-ADGroup @group | Set-ADGroup -Replace @{"mail" = "$($group.name)@birkdalehigh.co.uk"} -PassThru
         }
     }
 }

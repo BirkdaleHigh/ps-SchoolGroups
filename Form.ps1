@@ -145,15 +145,28 @@ function Get-FormADMember{
         Group-Object -Property 'FormName'
 }
 
-function New-Form{
+function New-Form {
+    <#
+    .SYNOPSIS
+        Create a new form AD group in the correct OU
+    .DESCRIPTION
+        Creates an new AD group in the correct OU with an email address for the group.
+    #>
     Param(
-        [parameter(Mandatory=$true,
-                   ValueFromPipeline=$true)]
+        [parameter(Mandatory = $true,
+            ValueFromPipeline = $true)]
         [string]
-        $name
+        $Name
     )
-    Process{
-        New-ADGroup -GroupScope 'Global' -GroupCategory 'Security' -Name $name -Path 'OU=Form Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL' -PassThru
+    Process {
+        $splat = @{
+            GroupScope    = 'Global'
+            GroupCategory = 'Security'
+            Name          = $Name
+            Path          = 'OU=Form Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL'
+            PassThru      = $true
+        }
+        New-ADGroup @splat | Set-ADGroup -Replace @{"mail" = "$Name@birkdalehigh.co.uk" } -PassThru
     }
 }
 
