@@ -100,11 +100,23 @@ function Update-EmployeeNumber {
     Param(
         # Active Directory account of user
         [Parameter(Mandatory,ValueFromPipeline,ValueFromPipelineByPropertyName)]
-        [ValidateScript({$psitem.PSobject.Properties.Name -contains "EmployeeNumber"})]
+        [ValidateScript({
+            if(
+                ($psitem.PSobject.Properties.Name -contains "EmployeeNumber") -and
+                ($null -ne $psitem.EmployeeNumber) -and
+                ('' -ne $psitem.EmployeeNumber)
+                ) {
+                    return $true
+                }
+            Throw "EmployeeNumber not set for $psitem"
+        })]
         [Microsoft.ActiveDirectory.Management.ADUser[]]$Identity
     )
     Process{
         ForEach ($User in $Identity) {
+            if($null -eq $User.EmployeeNumber -or '' -eq $user.EmployeeNumber){
+                Throw "EmployeeNumber not set for $($user.DistinguishedName)"
+            }
             try{
                 Set-ADUser -identity $User.DistinguishedName -add @{EmployeeNumber = $User.EmployeeNumber} -ErrorAction Stop
             } catch {
