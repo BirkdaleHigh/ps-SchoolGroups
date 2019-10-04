@@ -63,6 +63,26 @@ function start-classSync() {
     Sync-Class
 }
 
+function Start-FormSync{
+    <#
+    .SYNOPSIS
+        Create new for AD groups where they don't exist. Delete groups found in the AD not from the last report.
+    .DESCRIPTION
+        Use new-report to maintain current data, Try test-form separately fist to view effects
+    .EXAMPLE
+        PS C:\> <example usage>
+        Explanation of what the example does
+    .INPUTS
+        Inputs (if any)
+    .OUTPUTS
+        None
+    .NOTES
+        General notes
+    #>
+    Test-Form -Filter 'List' | New-Form
+    Test-Form -Filter 'AD' | Remove-ADGroup
+}
+
 Function Import-NewIntake {
     <#
     .SYNOPSIS

@@ -8,7 +8,6 @@
 }
 
 function Get-Class{
-    setupModule -ErrorAction Stop
     $ClassList | escapeName
 }
 function Get-ClassProperty{
@@ -248,9 +247,6 @@ function Get-ClassMember{
                    ValueFromPipelineByPropertyName=$true)]
         $Class
     )
-    Begin{
-        setupModule -ErrorAction Stop
-    }
     Process{
         $AdmissionNumber = $script:ClassMembers | where-object { (escapeName $_.Class) -eq $Class} | select-object -ExpandProperty Adno
         if([string]::IsNullOrEmpty($AdmissionNumber)){

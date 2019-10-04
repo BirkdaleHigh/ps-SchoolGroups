@@ -88,9 +88,6 @@ function Search-MISID{
         [Parameter(Mandatory,ValueFromPipeline,ValueFromPipelineByPropertyName)]
         [Microsoft.ActiveDirectory.Management.ADUser[]]$Identity
     )
-    Begin {
-        setupModule
-    }
     Process{
         $MIS_LIST = Import-SimsUser
         Compare-Object $MIS_LIST $Identity -Property Givenname,Surname -PassThru -IncludeEqual -ExcludeDifferent

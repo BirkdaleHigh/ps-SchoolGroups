@@ -80,9 +80,6 @@ function Search-MISAdmissionNumber{
         [Parameter(Mandatory,ValueFromPipeline,ValueFromPipelineByPropertyName)]
         [Microsoft.ActiveDirectory.Management.ADUser[]]$Identity
     )
-    Begin {
-        setupModule
-    }
     Process{
         ForEach($ADUser in $Identity){
             $script:UniqueUsers | Foreach-Object {

@@ -63,22 +63,24 @@ function Add-GroupStudent {
         [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName)]
         $Identity
     )
-
+    Begin {
+        $groups = @(
+            "Access24 Students" # Remote Desktop Access
+            "AccessStudentsShared" # Shared students folder for reading lesson work
+            "AllPupils" # Al students email address for bulk email becuase groups-in-groups doens't work
+            "$Intake Students" # Per school year management. Group is a member of appropriate Year X group.
+        )
+    }
     process {
         $intake = [int]($Identity.DistinguishedName -split ',')[1].remove(0,3)
 
-        if ($PSCmdlet.ShouldProcess($Identity.DistinguishedName, "Set group member of:$Intake Students, Access24 Students, AccessStudentsShared, AllPupils")) {
-            # Remote Desktop Access
-            Add-ADGroupMember -Members $Identity -Identity "Access24 Students"
-            # Shared students folder for reading lesson work
-            Add-ADGroupMember -Members $Identity -Identity "AccessStudentsShared"
-            # All students email address for bulk email
-            Add-ADGroupMember -Members $Identity -Identity "AllPupils"
-            # Per school year management. Group is a member of appropriate Year X group.
-            Add-ADGroupMember -Members $Identity -Identity "$Intake Students"
+        if ($PSCmdlet.ShouldProcess($Identity.DistinguishedName, "Set group member of:$($groups -join ', ')")) {
+            foreach($g in $groups){
+                Add-ADGroupMember -Members $Identity -Identity $g
+            }
 
             # Return the original user object
-            $Identity
+            Write-Output $Identity
         }
 
     }

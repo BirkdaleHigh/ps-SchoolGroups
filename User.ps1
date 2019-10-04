@@ -697,17 +697,9 @@ function Search-MissingStudent {
     param (
 
     )
-
-    begin {
-        setupModule
-    }
-
     process {
         $AD_LIST = Get-ADUser -Properties EmployeeID,EmployeeNumber,emailaddress -SearchBase 'OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL' -Filter *
         $MIS_LIST = Import-SimsUser
         compare-object $MIS_LIST $AD_LIST -Property EmployeeID -PassThru
-    }
-
-    end {
     }
 }

@@ -32,9 +32,6 @@ class SimsUser {
 }
 
 function Import-SimsUser {
-    Begin {
-        setupModule
-    }
     Process {
         $script:UniqueUsers |
             New-SimsUser
@@ -128,4 +125,7 @@ function New-Report{
     Start-Process -FilePath $Executable -ArgumentList $command -Wait -RedirectStandardError (join-path $env:TEMP "ClassMembers-SimsErrorOutput.log")
 
     get-item $Destination | write-output
+
+    setupModule
+
 }

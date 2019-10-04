@@ -1,80 +1,112 @@
-﻿function Get-Form{
-    setupModule -ErrorAction Stop
-    $FormList | escapeName
+﻿class Form {
+    [string]$Name
+    [string]$Teacher
+    [string]$TeacherInitial
 }
-function Get-FormMember{
+
+
+function Get-Form {
+    $script:FormList | escapeName
+}
+
+function Get-FormProperty {
     Param(
-        [parameter(ValueFromPipeline=$true,
-                   ValueFromPipelineByPropertyName=$true)]
+        [string[]]$Form
+    )
+    Begin {
+        $props = $script:FormMembers |
+            Select-Object -Unique -Property @(
+                @{
+                    name       = "name"
+                    expression = {
+                        escapeName $psitem.class
+                    }
+                }
+                "Teacher"
+                "Initials"
+            )
+    }
+    process {
+        $props | Where-Object name -in $Form
+    }
+}
+
+function Get-FormMember {
+    Param(
+        [parameter(ValueFromPipeline,
+            ValueFromPipelineByPropertyName)]
         [Alias('Class')]
         $Form
     )
-    Begin{
-        setupModule -ErrorAction Stop
-    }
-    Process{
-        $AdmissionNumber = $FormMembers | where { (escapeName $_.Class) -eq $form} | select -ExpandProperty Adno
+    Process {
+        $AdmissionNumber = $FormMembers | where-Object { (escapeName $_.Class) -eq $form } | select -ExpandProperty Adno
 
-        $AdmissionNumber | foreach {
-            get-aduser -Filter {EmployeeNumber -eq $psitem} -Properties EmployeeNumber
+        $AdmissionNumber | foreach-Object {
+            get-aduser -Filter { EmployeeNumber -eq $psitem } -Properties EmployeeNumber
         }
     }
 }
 
-function Test-Form{
+function Test-Form {
     Param(
         # Show values only from the chosen source, <= List, => AD
-        [parameter(ValueFromPipeline=$true,
-                   ValueFromPipelineByPropertyName=$true)]
+        [parameter(ValueFromPipeline,
+            ValueFromPipelineByPropertyName)]
         [ValidateSet('Both', 'List', 'AD')]
         $Filter = 'Both'
     )
     $ADList = Get-ADGroup -Filter * -SearchBase 'OU=Form Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL'
 
-    if($ADList -eq $null){
-        Write-Error "No Forms found from the AD" -ErrorAction Stop
-    }
-    switch ($Filter)
-    {
+    switch ($Filter) {
         'List' {
-            Compare-Object (Get-Form) $ADList.name  -IncludeEqual  -PassThru | where SideIndicator -eq '<='
+            if ($null -eq $ADList) {
+                Write-Warning "No Forms found, Were you expecting no forms in the OU?"
+                return get-form
+            }
+            Compare-Object (Get-Form) $ADList.name  -IncludeEqual  -PassThru | Where-Object SideIndicator -eq '<='
         }
         'AD' {
-            Compare-Object (Get-Form) $ADList.name  -IncludeEqual  -PassThru | where SideIndicator -eq '=>'
+            if ($null -eq $ADList) {
+                Write-Warning "No Forms found, Were you expecting no forms in the OU?"
+                return $null
+            }
+            Compare-Object (Get-Form) $ADList.name  -IncludeEqual  -PassThru | Where-Object SideIndicator -eq '=>'
         }
         Default {
+            if ($null -eq $ADList) {
+                Write-Warning "No Forms found, Were you expecting no forms in the OU?"
+                return get-form
+            }
             Compare-Object (Get-Form) $ADList.name  -IncludeEqual
         }
     }
 
 }
-function Test-FormMember{
+function Test-FormMember {
     Param(
         # Form the user should be a member of
-        [parameter(Mandatory=$true,
-                   Position=0,
-                   ValueFromPipeline=$true,
-                   ValueFromPipelineByPropertyName=$true)]
+        [parameter(Mandatory,
+            Position = 0,
+            ValueFromPipeline,
+            ValueFromPipelineByPropertyName)]
         [Alias('Class')]
         [string]
         $Form
 
         , # Show values only from the chosen source, <= List, => AD
-        [parameter(Position=1,
-                   ValueFromPipeline=$false,
-                   ValueFromPipelineByPropertyName=$true)]
+        [parameter(Position = 1,
+            ValueFromPipelineByPropertyName)]
         [ValidateSet('Both', 'List', 'AD')]
         [string]
         $Filter = 'Both'
     )
     $ADList = Get-ADGroupMember -Identity $Form | get-aduser -Properties 'EmployeeNumber'
 
-    if($ADList -eq $null){
+    if ($null -eq $ADList) {
         Write-Warning "No members found in $form from the AD"
         $Filter = 'List'
     }
-    switch ($Filter)
-    {
+    switch ($Filter) {
         'List' {
             Get-FormMember $form
         }
@@ -87,7 +119,7 @@ function Test-FormMember{
     }
 
 }
-function Get-FormADMember{
+function Get-FormADMember {
     <#
     .SYNOPSIS
         Show the counts of users found within each form group
@@ -137,8 +169,8 @@ function Get-FormADMember{
         # Accepts a wildcard filter.
         [string]$Name = '*'
     )
-    Get-ADGroup -SearchBase "OU=Form Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL" -Filter {Name -like $Name} |
-        foreach {
+    Get-ADGroup -SearchBase "OU=Form Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL" -Filter { Name -like $Name } |
+        Foreach-Object {
             Get-ADGroupMember -Identity $psitem |
                 add-member -PassThru -MemberType 'NoteProperty' -Name 'FormName' -value $psitem -force
         } |
@@ -170,19 +202,15 @@ function New-Form {
     }
 }
 
-function Sync-Form{
-    Test-Form -Filter 'List' | New-Form
-    Test-Form -Filter 'AD' | Remove-ADGroup
-}
-function Sync-FormMember{
+function Sync-FormMember {
     <#
         .NOTE
-            TODO: Remove AD members not longer listed from MIS
+            TODO: Remove AD members no longer listed from MIS
     #>
-    [cmdletbinding(SupportsShouldProcess=$true)]
+    [cmdletbinding(SupportsShouldProcess)]
     Param(
         # Form name to synchronize
-        [Parameter(ValueFromPipeline,ValueFromPipelineByPropertyName,Position=0)]
+        [Parameter(ValueFromPipeline, ValueFromPipelineByPropertyName, Position = 0)]
         [ValidateNotNullOrEmpty()]
         [Alias('Form')]
         [String[]]

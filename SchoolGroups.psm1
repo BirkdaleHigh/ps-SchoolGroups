@@ -1,12 +1,13 @@
 ﻿function setupModule{
     $Datasource = Get-ChildItem -Filter "ClassMembers-*.csv" -Path $env:TEMP | Sort-Object -Property CreationTimeUtc | Select-Object -Last 1
-    $newFilename = $Datasource.fullname
-    if($script:filename -eq $newFilename){
-        return
-    }
-    $script:filename = $newFilename
-
+    
     if($Datasource){
+        $newFilename = $Datasource.fullname
+        if($script:filename -eq $newFilename){
+            return
+        }
+        $script:filename = $newFilename
+
         $script:SimsReport = import-csv $Datasource.fullname
 
         $script:UniqueUsers = $script:SimsReport | Sort-Object -Unique -Property adno
