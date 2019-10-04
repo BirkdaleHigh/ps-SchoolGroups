@@ -119,41 +119,48 @@ function Get-ClassProperty{
     }
 }
 
-function Test-Class{
+function Test-Class {
     Param(
         # Show values only from the chosen source, <= MIS, => AD
-        [parameter(ValueFromPipeline=$true,
-                   ValueFromPipelineByPropertyName=$true)]
+        [parameter(ValueFromPipeline = $true,
+            ValueFromPipelineByPropertyName = $true)]
         [ValidateSet('Both', 'MIS', 'AD')]
         $Filter = 'Both'
-    )
-    $ADList = Get-ADGroup -Filter * -SearchBase 'OU=Class Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL'
 
-    if($ADList -eq $null){
-        Write-Error "No Classes found from the AD" -ErrorAction Stop
+        , # Class Name to test
+        [String[]]
+        $Name = (Get-Class)
+    )
+    Begin {
+        $ADList = Get-ADGroup -Filter * -SearchBase 'OU=Class Groups,OU=Student Groups,OU=Security Groups,OU=BHS,DC=BHS,DC=INTERNAL'
+        if ($null -eq $ADList) {
+            Write-Error "No Classes found from the AD" -ErrorAction Stop
+        }
     }
-    $result = Compare-Object (Get-Class) $ADList.name -IncludeEqual |
-        Select-Object @{
-            name='Name';
-            Expression={
-                $_.InputObject
+    Process {
+        $result = Compare-Object $Name $ADList.name -IncludeEqual |
+            Select-Object @{
+                name       = 'Name';
+                Expression = {
+                    $_.InputObject
+                }
+            }, @{
+                name       = 'Source';
+                Expression = {
+                    $_.SideIndicator.Replace('<=', 'MIS').Replace('=>', 'AD').Replace('==', 'Both')
+                }
             }
-        }, @{
-            name='Source';
-            Expression={
-                $_.SideIndicator.Replace('<=','MIS').Replace('=>','AD').Replace('==','Both')
+
+        switch ($Filter) {
+            'MIS' {
+                $result | Where-Object Source -eq 'MIS' | Where-Object Name -in $Name
             }
-        }
-    switch ($Filter)
-    {
-        'MIS' {
-            $result | Where-Object Source -eq 'MIS'
-        }
-        'AD' {
-            $result | Where-Object Source -eq 'AD'
-        }
-        Default {
-            $result
+            'AD' {
+                $result | Where-Object Source -eq 'AD' | Where-Object Name -in $Name
+            }
+            Default {
+                $result | Where-Object Name -in $Name
+            }
         }
     }
 }
@@ -190,8 +197,39 @@ function New-Class{
 }
 
 function Sync-Class{
-    Test-Class | Where-Object Source -eq MIS | New-Class
-    Test-Class | Where-Object Source -eq AD | Select-Object -ExpandProperty Name | Remove-ADGroup
+    <#
+    .SYNOPSIS
+        Match AD Groups from the MIS source
+    .DESCRIPTION
+        Compare the MIS Sorce list of class groups and create AD groups or delete them.
+    .INPUTS
+        [string[]] Class name
+    .OUTPUTS
+        New class ad group objects
+    #>
+    [cmdletbinding(SupportsShouldProcess=$true)]
+    Param(
+        # Choose Classes to Syncronize
+        [Parameter(ValueFromPipeline,ValueFromPipelineByPropertyName)]
+        [ValidateNotNullOrEmpty()]
+        [string[]]
+        $Class = (Get-Class)
+    )
+    $classes = Test-Class -Name $Class
+    $new = $classes | Where-Object Source -eq MIS | Select-Object -ExpandProperty Name
+    $old = $classes | Where-Object Source -eq AD | Select-Object -ExpandProperty Name
+    if($new.count -eq 0 -and $old.count -eq 0){
+        Write-Verbose "No difference in AD class groups from MIS"
+        return
+    }
+    Write-Verbose "Create $($new.count) groups"
+    if ($pscmdlet.ShouldProcess($new, "Create New AD Group")){
+        $new | New-Class
+    }
+    Write-Verbose "Remove $($old.count) groups"
+    if ($pscmdlet.ShouldProcess($old, "Remove Existing AD Group")){
+        $old | Remove-ADGroup
+    }
 }
 
 function Get-ClassMember{

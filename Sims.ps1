@@ -10,7 +10,7 @@ class SimsUser {
     # CSV Imported Object Parameters
     SimsUser([PSCustomObject]$PipedObject){
         $this.Givenname      = $PipedObject.forename
-        $this.Surname        = $PipedObject.'Legal Surname'
+        $this.Surname        = $PipedObject.Surname
         $this.EmployeeNumber = ([int]$PipedObject.adno).toString('000000')
         $this.EmployeeID     = [int]$PipedObject.Person_id # Person_id from students report, just id when from pre-admission report
         $this.YearGroup      = $PipedObject.year

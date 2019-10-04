@@ -21,7 +21,7 @@ function New-Staff{
         [int]$Max = $MAX_RETRY_NEW_USER
     )
     Begin{
-        
+
     }
     Process{
 
@@ -74,7 +74,7 @@ function New-Student{
         })]
         [string]$EmployeeNumber,
 
-    
+
         [Parameter(Mandatory=$true,
         Position=0,
         ValueFromPipeline=$true,
@@ -85,7 +85,7 @@ function New-Student{
         ValueFromPipelineByPropertyName=$true)]
         [ValidateScript({ValidateIntake $psitem})]
         [string]$intake,
-        
+
         # Maximum number of duplicate usernames to increment through when creating accounts
         [ValidateRange(0,[int]::MaxValue)]
         [int]$Max = $MAX_RETRY_NEW_USER,
@@ -96,13 +96,12 @@ function New-Student{
         ValueFromPipelineByPropertyName=$true)]
         [Parameter(ParameterSetName="preAdmission",
         Position=0,
-        Mandatory,
         ValueFromPipeline=$true,
         ValueFromPipelineByPropertyName=$true)]
         [int]$ID
     )
     Begin{
-        
+
     }
     Process{
 
@@ -269,34 +268,31 @@ function New-CADirectory{
 
         , # Intake Year
         [Parameter(Mandatory=$true,
-                    Position=1,
-                    ValueFromPipelineByPropertyName=$true)]
+                   Position=1)]
         [ValidateScript({ValidateIntake $psitem})]
         [string]$intake
 
         , # Full subject name e.g. 'Computer Science'
         [Parameter(Mandatory=$true,
-                   Position=2,
-                   ValueFromPipelineByPropertyName=$true)]
+                   Position=2)]
         [string]$SubjectName
     )
     Begin {
-        [string]$intake = $intake
-        [string]$PathRoot = "\\bhs-fs01\CA\Intake $Year"
+        [string]$PathRoot = "\\bhs-fs01\CA\Intake $intake"
         [string]$PathSubject = join-path $PathRoot $SubjectName
 
         # Validate intake path exists or to be created
         if(-not (Test-Path $PathRoot)){
-            Write-Error "Missing $PathRoot"
+            Write-Error "Missing '$PathRoot' Path"
             Write-Warning "Ensure AccessCAShared has read/execute to access this folder only for later mapping"
             $invalidRoot = $true
         }
         if(-not (Test-Path $PathSubject)){
-            Write-Error "Missing $PathSubject"
+            Write-Error "Missing '$PathSubject' Path"
             Write-Warning "Ensure desired CA_Intake_Subject group has read/execute to access this folder only for later mapping"
             $invalidsubject = $true
         }
-        if($invalidRoot -and -$invalidSubject){
+        if($invalidRoot -or -$invalidSubject){
             Throw "Please Fix path errors to continue."
         }
 
@@ -641,7 +637,7 @@ function Get-SchoolUser {
                     Write-Output
             }
             'Get1' {
-                $queryString = "(|(objectClass=user)(employeenumber=$( $EmployeeNumber.padLeft(6,'0') )))"
+                $queryString = "(&(objectClass=user)(employeenumber=$( $EmployeeNumber.padLeft(6,'0') )))"
                 Write-Verbose "LDAP Get1 Query String: $queryString"
                 $output = Get-ADUser -LDAPfilter $queryString -properties $props |
                     Select-Object -Property $outputFields
@@ -687,5 +683,31 @@ function Get-SchoolUser {
             }
         }
 
+    }
+}
+
+function Search-MissingStudent {
+    <#
+    .SYNOPSIS
+        Get users missing in AD from the MIS Source
+    .DESCRIPTION
+        Compares all ad studnets OU users against EmployeeID
+    #>
+    [CmdletBinding()]
+    param (
+
+    )
+
+    begin {
+        setupModule
+    }
+
+    process {
+        $AD_LIST = Get-ADUser -Properties EmployeeID,EmployeeNumber,emailaddress -SearchBase 'OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL' -Filter *
+        $MIS_LIST = Import-SimsUser
+        compare-object $MIS_LIST $AD_LIST -Property EmployeeID -PassThru
+    }
+
+    end {
     }
 }

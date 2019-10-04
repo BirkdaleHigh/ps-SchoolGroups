@@ -74,6 +74,14 @@
 }
 
 function Search-MISID{
+    <#
+        .SYNOPSIS
+        Show the MISID value for users based on name
+        .DESCRIPTION
+        Comparing first name + surname between AD and MIS show the users ID from the returned MIS record.
+
+        == Was found in both
+    #>
     [CmdletBinding()]
     Param(
         # Active Directory account of user
@@ -84,14 +92,8 @@ function Search-MISID{
         setupModule
     }
     Process{
-        ForEach($ADUser in $Identity){
-            $script:UniqueUsers | Foreach-Object {
-                if( ($ADUser.givenname -eq $psitem.Forename) -and ($ADUser.surname -eq $psitem.Surname.replace("`'",'').replace(" ",'-')) ){
-                    $ADUser.EmployeeID = $psitem.Person_id
-                    write-output $ADUser
-                }
-            }
-        }
+        $MIS_LIST = Import-SimsUser
+        Compare-Object $MIS_LIST $Identity -Property Givenname,Surname -PassThru -IncludeEqual -ExcludeDifferent
     }
 }
 
