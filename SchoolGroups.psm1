@@ -57,6 +57,7 @@ Import-Configuration
 
 setupModule
 
+. "$PSScriptRoot\Group.class.ps1"
 . "$PSScriptRoot\Form.ps1"
 . "$PSScriptRoot\Class.ps1"
 . "$PSScriptRoot\Adno.ps1"

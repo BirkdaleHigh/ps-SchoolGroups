@@ -1,34 +1,7 @@
-﻿class Form {
-    [string]$Name
-    [string]$Teacher
-    [string]$TeacherInitial
-}
-
-
-function Get-Form {
-    $script:FormList | escapeName
-}
-
-function Get-FormProperty {
-    Param(
-        [string[]]$Form
-    )
-    Begin {
-        $props = $script:FormMembers |
-            Select-Object -Unique -Property @(
-                @{
-                    name       = "name"
-                    expression = {
-                        escapeName $psitem.class
-                    }
-                }
-                "Teacher"
-                "Initials"
-            )
-    }
-    process {
-        $props | Where-Object name -in $Form
-    }
+﻿function Get-Form {
+    $script:FormList.foreach({
+        [OrgForm]::New($psItem)
+    })
 }
 
 function Get-FormMember {
