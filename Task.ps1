@@ -131,7 +131,8 @@ function Reset-AllIntakePassword {
 }
 
 . "$PSScriptRoot\User.ps1"
-function Reset-ExamAccount {
+function Reset-ExamUser {
+    [cmdletbinding()]
     Param(
         # Reset specific exam account
         [ValidateRange(0,[int]::MaxValue)]
