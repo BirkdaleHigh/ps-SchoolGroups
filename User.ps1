@@ -477,11 +477,20 @@ function New-HomeDirectory{
                 $Entry = New-Object System.Security.AccessControl.FileSystemAccessRule($Principal, 'Modify', 'ContainerInherit,ObjectInherit', $Propagation, $Type)
 
                 $ACL = Get-ACL $location
-                $ACL.AddAccessRule($Entry)
+                try{
+                    $ACL.AddAccessRule($Entry)
+                } catch {
+                    # User somehow doesn't exist to actually set a permission when referenced
+                    # Cleanup before end
+                    Remove-Item $location
+                    Write-Error "Could not create ACL for: $($Entry.IdentityReference)"
+                    Throw $psitem
+                }
 
                 Set-ACL $psitem.homeDirectory $ACL
 
-                Write-Output $location
+                $psitem.homeDirectory = $location
+                Write-Output $psitem
             }
     }
 }
