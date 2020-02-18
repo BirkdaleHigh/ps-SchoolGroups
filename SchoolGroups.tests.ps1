@@ -39,22 +39,22 @@ InModuleScope SchoolGroups {
             It 'When no user already exists return the initial name' {
                 $username = '20userT'
                 CreateUsername -Username $username | should -eq $username
-                
-                Assert-MockCalled Get-SchoolUser -Exactly 1 -Scope 'It'            
+
+                Assert-MockCalled Get-SchoolUser -Exactly 1 -Scope 'It'
             }
             It 'User already exists so append 1 to the username' {
                 $username = '20DuplicateT'
                 CreateUsername -Username $username | should -eq ($username + '1')
-                
-                Assert-MockCalled Get-SchoolUser -Exactly 2 -Scope 'It'            
-                Assert-MockCalled Get-SchoolUser -Exactly 2 -Scope 'It'            
+
+                Assert-MockCalled Get-SchoolUser -Exactly 2 -Scope 'It'
+                Assert-MockCalled Get-SchoolUser -Exactly 2 -Scope 'It'
             }
             It 'Appended user already exists so increment the username' {
                 $username = '20TripleT'
                 CreateUsername -Username $username | should -eq '20TripleT2'
-                
-                Assert-MockCalled Get-SchoolUser -Exactly 3 -Scope 'It'            
-                Assert-MockCalled Get-SchoolUser -Exactly 3 -Scope 'It'            
+
+                Assert-MockCalled Get-SchoolUser -Exactly 3 -Scope 'It'
+                Assert-MockCalled Get-SchoolUser -Exactly 3 -Scope 'It'
             }
             It 'Should not allow usernames over the 20 character SamAccountName limit' {
                 $username = '120MaxusernameLimitT'
@@ -115,7 +115,7 @@ InModuleScope SchoolGroups {
             }
             It 'Throw if the name is unique but the ID is not' {
                 {New-SchoolUser -Givenname "Duplicate" -Surname "EmplyeeNumber" -EmployeeNumber '000409' -intake 1910} | Should -Throw
-                
+
                 Assert-MockCalled Get-SchoolUser -Times 1 -Exactly -Scope 'It'
                 Assert-MockCalled New-ADUser -Times 0 -Exactly -Scope 'It'
                 Assert-MockCalled New-HomeDirectory -Times 0 -Exactly -Scope 'It'

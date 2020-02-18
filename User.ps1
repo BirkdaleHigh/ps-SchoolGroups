@@ -434,11 +434,87 @@ function Reset-ADPassword{
     }
 }
 
-function CreatePassword {
-    param (
-        $prefix = 'birkdale'
+Set-Alias -name CreatePassword -value New-EasyPassword
+function New-EasyPassword {
+    <#
+    .SYNOPSIS
+        Generate a new password
+    .DESCRIPTION
+        Create easy to read and type passwords for resetting accounts that exist for a short time.
+
+        Randomly using and ascii table for a-Z, 1-9 with punctuation excluding ambiguous charaters like;
+        O, 0, I, l, W, w, V v
+    .EXAMPLE
+        PS C:\> <example usage>
+        Explanation of what the example does
+    .INPUTS
+        None
+    .OUTPUTS
+        String
+    .EXAMPLE
+        New-EasyPassword -Prefix welcome -MinLength 12
+        welcomevDVRm$
+    .EXAMPLE
+        New-EasyPassword -MinLength 7
+        ZzT:K.OG
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    Param(
+        # Minimum Password Length
+        [Parameter(Position = 0)]
+        [ValidateRange(1, [int]::MaxValue)]
+        [Alias('Min')]
+        [int]
+        $MinLength = 6
+
+        , # Maximum Password Length
+        [Parameter(Position = 1)]
+        [ValidateRange(2, [int]::MaxValue)]
+        [Alias('Max')]
+        [int]
+        $MaxLength = $MinLength + 2
+
+        , # Prefix to the generated password to meet length requirments but lower complexity for quick resets
+        [Parameter(Position = 2)]
+        [string]
+        $Prefix = 'birkdale'
     )
-    Write-Output "$Prefix$(get-random -Minimum 1000 -Maximum 9999)"
+    # Define the password length to be just the max length if a range is otherwise undefined.
+    if ($PSBoundParameters.ContainsKey('MaxLength') -and -not $PSBoundParameters.ContainsKey('MinLength')) {
+        $MinLength = $MaxLength - 1
+    }
+    if ($MinLength -gt $MaxLength) {
+        Throw [System.Management.Automation.ParameterBindingException]::New("Max length($MaxLength) must be greater than the Minimum($MinLength)")
+    }
+    if ($Prefix.length -ge $MinLength) {
+        Throw [System.Management.Automation.ParameterBindingException]::New("Prefix($Prefix) must be not be longer than the Minimum($MinLength) to add random characters")
+    }
+
+    if ($Prefix) {
+        $MinLength -= $Prefix.length
+        $MaxLength -= $Prefix.length
+    }
+
+    if ($MinLength -eq $MaxLength) {
+        $length = $MinLength
+    }
+    else {
+        $length = Get-Random -Minimum $MinLength -Maximum $MaxLength
+    }
+
+    $letters = (33..122) |
+    Where-Object {
+        # Using an ASCII table, exclude character numbers found hard to say or type.
+        # Consider removing O, 0, I, l, W, w, V v if you can't control the font the user is presented with.
+        $psitem -notin 34, 38, 39, 42, 44, 47, 60, 62 + 91..96
+    } |
+    Get-Random -Count $length |
+    ForEach-Object {
+        [char]$psitem
+    }
+
+    Write-Output "$Prefix$(-join $letters)"
 }
 
 function Find-UnchangedPassword {
@@ -626,7 +702,7 @@ function Get-SchoolUser {
 
         , # MIS Record ID/Employee Number
         [Parameter(Position=0, Mandatory, ParameterSetName='GetID', ValueFromPipelineByPropertyName, ValueFromPipeline)]
-        [ValidateLength(1,6)]
+        [ValidateRange(0,6)]
         [Alias("physicalDeliveryOfficeName")]
         [int[]]
         $ID
@@ -713,7 +789,7 @@ function Get-SchoolUser {
     }
 }
 
-function Search-MissingStudent {
+function Get-NewStudent {
     <#
     .SYNOPSIS
         Get users missing in AD from the MIS Source
@@ -727,6 +803,24 @@ function Search-MissingStudent {
     process {
         $AD_LIST = Get-ADUser -Properties EmployeeID,EmployeeNumber,emailaddress -SearchBase 'OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL' -Filter *
         $MIS_LIST = Import-SimsUser
-        compare-object $MIS_LIST $AD_LIST -Property EmployeeID -PassThru
+        compare-object $MIS_LIST $AD_LIST -Property EmployeeID -PassThru | Where-Object SideIndicator -eq '<='
+    }
+}
+
+function Get-LeftStudent {
+    <#
+    .SYNOPSIS
+        Get users missing in AD from the MIS Source
+    .DESCRIPTION
+        Compares all ad studnets OU users against EmployeeID
+    #>
+    [CmdletBinding()]
+    param (
+
+    )
+    process {
+        $AD_LIST = Get-ADUser -Properties EmployeeID,EmployeeNumber,emailaddress -SearchBase 'OU=Students,OU=Users,OU=BHS,DC=BHS,DC=INTERNAL' -Filter *
+        $MIS_LIST = Import-SimsUser
+        compare-object $MIS_LIST $AD_LIST -Property EmployeeID -PassThru | Where-Object SideIndicator -eq '<='
     }
 }
