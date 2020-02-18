@@ -44,25 +44,6 @@ function Start-UpdateEmployeeNumber {
     }
 }
 
-function start-classSync() {
-    <#
-    .SYNOPSIS
-        Short description
-    .DESCRIPTION
-        Long description
-    .EXAMPLE
-        PS C:\> <example usage>
-        Explanation of what the example does
-    .INPUTS
-        Inputs (if any)
-    .OUTPUTS
-        None
-    .NOTES
-        General notes
-    #>
-    Sync-Class
-}
-
 function Start-FormSync{
     <#
     .SYNOPSIS
@@ -83,22 +64,20 @@ function Start-FormSync{
     Test-Form -Filter 'AD' | Remove-ADGroup
 }
 
-Function Import-NewIntake {
+Function Get-NewIntake {
     <#
     .SYNOPSIS
     Overall task to setup the new student year from sims
     .DESCRIPTION
     Work in Progress
-    1. run a specfic report (different from the sync report) from sims.net
+    1. run a specfic report (different from the sync report) from sims.net "Import to Active Directory"
     2. Import that CSV
     3. convert that import into user objects
-    4. Pipe those object the new-schooluser for consistancy across all users
-    5. Run class sync to assign form/class memberships
-    6. run reset-adpassword against these forms to generate welcome letters
+    .EXAMPLE
+    
     #>
-    $csv = import-csv (new-report -name "Import to Active Directory" -Destination ($env:TEMP + "\intake-" + (get-date).ToFileTimeUtc() + ".csv") )
-    $ad = $csv | import-simsUser
-    $ad | New-SchoolUser
+    import-csv (new-report -name "Import to Active Directory" -Destination ($env:TEMP + "\intake-" + (get-date).ToFileTimeUtc() + ".csv") ) |
+        import-simsUser
 }
 
 function Reset-AllIntakePassword {
@@ -138,7 +117,7 @@ function Reset-ExamUser {
         [ValidateRange(0,[int]::MaxValue)]
         [int[]]$Number
     )
-    $Number | 
+    $Number |
         Get-ExamUser |
         Reset-ADPassword |
         Sort-Object { [int]$_.surname } |
