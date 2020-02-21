@@ -16,10 +16,9 @@ LONG DESCRIPTION
     This module contains a pre-defined report that can be imported into sims.net as a shortcut to correctly format the data.
 
 EXAMPLES
-    Examples of how to use the module or how the subject feature works in practice.
-
-KEYWORDS
-    Terms or titles on which you might expect your users to search for the information in this topic.
+    Get-Help about_SchoolGroups_Tasks
 
 SEE ALSO
-    about_SchoolGroups_Tasks describes procedures included with the module.
+    "Get-Command -Module schoolgroups" to list all the functions in the module
+    "Get-Help about_SchoolGroups_Tasks" describes each procedure that can be done with the included functions.
+    "Get-Help <function-name>" to view help. Use -showWindow or -Detailed to get extra help
