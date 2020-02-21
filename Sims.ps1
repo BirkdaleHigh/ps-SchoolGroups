@@ -80,12 +80,16 @@ function Get-IncorrectSimsEmail() {
 function New-Report{
     <#
     .SYNOPSIS
-        Run the report for a new list of group memberships
+        Run the report for a new list of group memberships. Or run any report available on sims.net by its name
     .DESCRIPTION
-        Runs the names Sims.net report if found in the users "My Reports" location that
-        generates the list of group details to sync other services with.
+        Runs the names Sims.net report if found in the users "My Reports" location unless globally available
+        This generates the list of group details to sync other services with.
 
-        Report contains all users with admission number repeated for each group IDs membership
+        Current reports are:
+        * "Student ID Class Membership" - Default, Report contains all users with admission number repeated for each group IDs membership
+        * "Import to Active Dorectory" used by get-newIntake
+
+        The .RptDef files which SIMS.net can import and in the module source folders in SimsReports/
     .EXAMPLE
         PS C:\> New-Report
         Runs the report to store in a temporary location for other cmldets to use.
@@ -94,7 +98,7 @@ function New-Report{
     .OUTPUTS
         CSV Document containing user and group memberships
     .NOTES
-        when running "trusted" the Sim.net user must have the required report in the "My Reports" location.
+        when running "trusted" the Sim.net user must have the required report in the "My Reports" location or globally available.
         This report can be imported from this modules "SimsReports/" Folder, named "All Student Class Memberships.RptDef"
 
         Command path example

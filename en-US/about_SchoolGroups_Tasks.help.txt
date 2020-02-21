@@ -7,15 +7,55 @@ SHORT DESCRIPTION
 LONG DESCRIPTION
     There's 2 sides to this module, Overall tasks to perform a job and also each function that is part of that job can be used separately
 
-    TASKS
-    Sync Class Groups
-        1. New-Report (update information from sims report)
-        2. Sync-Class (Contains Get-Class, Test-Class, New-Class, Remove-Class)
+    TASKS - Praparation
+            All users have EmplyeeNumber Applied
+        1a. Get-MissingEmployeeNumber
+            All enabled accounts have an EmployeeNumber for intake: 2020
+        1b. Get-MissingEmployeeNumber -intake 2019
+            Incorrect: 3 missing EmployeeNumbers for intake: 2019
 
-    Sync Class Group Members
-        1. New-Report (update information from sims report)
-        2. Sync-ClassMember ()
+        2. See the actual user objects with -passThru `Get-MissingEmployeeNumber -intake 2019 -PassThru`
 
-    The Form commands are a mirror of Class except with a different naming & OU pattern.
+            DistinguishedName : CN=19LastF,OU=2019,OU=Students,OU=Users,DC=example,DC=com
+            EmployeeNumber    :
+            Enabled           : True
+            GivenName         : First
+            Name              : 19LastF
+            ObjectClass       : user
+            ObjectGUID        : XXXX-XX-XX-XX-XXXXX
+            SamAccountName    : 19LastF
+            SID               : S-1-5-21-XXXXX
+            Surname           : Last
+            UserPrincipalName : 19LastF@example.com
+
+            So you pipe this to lookup the EmployeeNumber by name from the MIS export from New-Report e.g.
+
+            Get-MissingEmployeeNumber -intake 2019 -PassThru | Search-MISAdmissionNumber
+
+            You get the user object again but this time with the employeeNumber filled in.
+
+        3. Get-MissingEmployeeNumber -intake 2019 -PassThru | Search-MISAdmissionNumber | Update-EmployeeNumber
+            Apply that new ID
+
+    TASKS - Normal usage, loosely in order
+        New Users
+            1a. new-student
+            1b. new-staff
+
+        Sync Class Groups
+            1. New-Report (update information from sims report)
+            2. Sync-Class (Contains Get-Class, Test-Class, New-Class, Remove-Class)
+
+        Sync Class Group Members
+            1. New-Report (update information from sims report)
+            2. Sync-ClassMember (Contains Test-ClassMembers, Add-ClassMember or Remove-ClassMember)
+
+        The Form commands are a mirror of Class except with a different naming & OU pattern.
+
+    TASKS - Housekeeping
+        Some functions are only to help keep data in check
+
+        Get-IncorrectSimsEmail Validates sims records to AD, see its help.
+        Test-HomeDirectory Validates if a user has a homefolder and the correct permissions.
 
     HELPERS

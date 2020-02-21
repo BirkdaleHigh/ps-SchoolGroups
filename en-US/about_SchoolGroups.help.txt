@@ -17,6 +17,14 @@ LONG DESCRIPTION
 
     This module contains a pre-defined report that can be imported into sims.net as a shortcut to correctly format the data.
 
+    HELPERS
+    You want to look at the get-help <command-name> for all of the following, this is an overview;
+
+    Get-IncorrectSimsEmail Easy lookup to find incorrect entries. Does nothing for the rest of the module but handy.
+    Get-SchoolUser Wrapper to Get-ADuser to return more school-appropriate fields, used internally too.
+    New-Report - runs sims reports o nthe command line for you, even configure your own.
+    Import-SimUser - Unwraps the report export CSV into powershell objects. Used to provision uses but it can be handy otherwise too.
+
 EXAMPLES
     Get-Help about_SchoolGroups_Tasks
 

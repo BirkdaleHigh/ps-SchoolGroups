@@ -1,7 +1,7 @@
 ﻿function Get-MissingEmployeeNumber{
     <#
     .SYNOPSIS
-    Are user accounts missing EmployeeNumbers
+    Are user accounts missing EmployeeNumbers, Normal input is informations, use -passthru to get the user objects back into powershell
 
     .DESCRIPTION
     Search an entire year (which is shorthand to the OU) for enabled user accounts without the EmployeeNumber filled in.
@@ -75,6 +75,23 @@
 
 function Search-MISAdmissionNumber{
     [CmdletBinding()]
+    <#
+    .SYNOPSIS
+        Compare forename/surname as best we can between AD and MIS to match up the MIS number for the employeenumber
+    .DESCRIPTION
+        This command is best used by taking the results piped from `Get-MisssingEmplyeenNumber -passthru`
+
+        Updates the users AD object with the MIS number, it does not write back to the AD, see Update-EmployeeNumber
+
+        Anything this can't find but still returns from get-missingEmplyeeNumber you'll have to manually fix in AD, it's either changed names in MIS or some other data error.
+    .EXAMPLE
+        PS C:\> Get-MissingEmployeeNumber -intake 2019 -PassThru | Search-MISAdmissionNumber
+        AD user object with the employeeNumber attribute applied from MIS, Would be used to pipe into set-aduser or better would be `Update-EmplyeeNumber`
+    .INPUTS
+        Microsoft.ActiveDirectory.Management.ADUser
+    .OUTPUTS
+        Microsoft.ActiveDirectory.Management.ADUser
+    #>
     Param(
         # Active Directory account of user
         [Parameter(Mandatory,ValueFromPipeline,ValueFromPipelineByPropertyName)]
@@ -94,6 +111,23 @@ function Search-MISAdmissionNumber{
 
 function Update-EmployeeNumber {
     [CmdletBinding()]
+    <#
+    .SYNOPSIS
+        Wrapper to Set-ADUser that requires and validates the EmplyeeNumber attribute.
+    .DESCRIPTION
+        Any AD user object from Get-ADUser won't by default include the EmployeeNumber field, this wrapper ensures AD objects you pipe to it DO have that field.
+
+        The manualy way to get this would be `get-aduser -properties employeeNumber`
+    .EXAMPLE
+        PS C:\> Get-MissingEmployeeNumber -intake 2019 -PassThru | Search-MISAdmissionNumber | Update-EmployeeNumber
+        quickly fix al lthe easy-wins from searching the MIS export
+    .INPUTS
+        Microsoft.ActiveDirectory.Management.ADUser
+    .OUTPUTS
+        Microsoft.ActiveDirectory.Management.ADUser
+    .NOTES
+        General notes
+    #>
     Param(
         # Active Directory account of user
         [Parameter(Mandatory,ValueFromPipeline,ValueFromPipelineByPropertyName)]

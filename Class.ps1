@@ -130,6 +130,9 @@ function Sync-Class{
         Compare the MIS Sorce list of class groups and create AD groups or delete them.
 
         Contains import like Get-Class, uses Test-Class and then New-Class or Remove-Class
+    .EXAMPLE
+        Sync-Class -Verbose -WhatIf
+        Shows you the progress as well as what it will do
     .INPUTS
         [string[]] Class name from Get-Class
     .OUTPUTS
