@@ -2,6 +2,21 @@ remove-module SchoolGroups -force
 import-module "$PSScriptRoot\SchoolGroups.psd1" -force
 
 InModuleScope SchoolGroups {
+    Describe 'Overall module quality'{
+        Context 'Get-Help' {
+            BeforeAll {
+                $functions = Get-Command -Module SchoolGroups
+                $allHelp = $functions.foreach( {
+                    Get-Help $_
+                })
+            }
+            It 'All Commands Should have help' {
+                $allHelp.Where({
+                    $psitem.description -eq $null
+                }).count | should -eq 0
+            }
+        }
+    }
     Describe 'Internal Function Testing' {
         Mock Get-SchoolUser {
             Throw [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]::New('Mock has no user to return')
