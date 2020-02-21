@@ -22,7 +22,7 @@ class SimsUser {
         if($this.email -notlike '*@birkdalehigh.co.uk'){
             return $False
         }
-        $ad = Get-SchoolUser -EmployeeNumber $this.EmployeeNumber
+        $ad = Get-SchoolUser -EmailAddress $this.Email
         if($ad.emailaddress -eq $this.Email){
             return $True
         } else {
@@ -51,6 +51,27 @@ function New-SimsUser {
 }
 
 function Get-IncorrectSimsEmail() {
+    <#
+    .SYNOPSIS
+        Check if there is an AD user with the email address entered into sims.net
+    .DESCRIPTION
+        Looks up the MIS emailaddress fields with AD for a user account
+
+        Future work could expand upon validing the name and ID returned by this users matches as expected.
+    .EXAMPLE
+        PS C:\> Get-IncorrectSimsEmail
+        Givenname      : Ben
+        Surname        : McDonalds
+        EmployeeNumber : 009007
+        EmployeeID     : 00001
+        YearGroup      : Year  7
+        DisplayName    : Ben McDonalds
+        Email          : 19McDonaldsM@birkdalehigh.co.uk
+
+        Notice the initial in the email is incorrect, someone made a typo.
+    .OUTPUTS
+        Custom module SimsUser
+    #>
     Import-SimsUser |
         where-object { -not $psitem.validEmail() } |
         sort-object intake, surname

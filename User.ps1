@@ -709,6 +709,12 @@ function Get-SchoolUser {
         [Alias("physicalDeliveryOfficeName")]
         [int[]]
         $ID
+
+        , # MIS Record ID/Employee Number
+        [Parameter(Position=0, Mandatory, ParameterSetName='mail', ValueFromPipelineByPropertyName, ValueFromPipeline)]
+        [Alias("mail")]
+        [string[]]
+        $EmailAddress
     )
     Begin{
         $props = @(
@@ -748,7 +754,7 @@ function Get-SchoolUser {
                 $output = Get-ADUser -LDAPfilter $queryString -properties $props |
                     Select-Object -Property $outputFields
                 if($output.length -eq 0){
-                    throw [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]::new("No user found by employee number")
+                    Write-Error -message "No user found by employee number" -Exception (New-Object -TypeName Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException)
                 }
                 if($output.length -gt 1){
                     Write-Error "Multiple Users found with the same EmplyeeNumber field, please correct this."
@@ -762,7 +768,7 @@ function Get-SchoolUser {
                 $output = Get-ADUser -LDAPfilter $queryString -properties $props |
                     Select-Object -Property $outputFields
                 if($output.length -eq 0){
-                    throw [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]::new("No user found by physicalDeliveryOfficeName")
+                    Write-Error -message "No user found by physicalDeliveryOfficeName" -Exception (New-Object -TypeName Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException)
                 }
                 if($output.length -gt 1){
                     Write-Error "Multiple Users found with the same physicalDeliveryOfficeName field, please correct this."
@@ -779,10 +785,24 @@ function Get-SchoolUser {
                 $output = Get-ADUser -LDAPfilter $queryString -properties $props |
                     Select-Object -Property $outputFields
                 if($output.length -eq 0){
-                    throw [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]::new("No user found by employee number")
+                    Write-Error -message "No user found by employee number" -Exception (New-Object -TypeName Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException)
                 }
                 if($output.count -gt 1){
                     Write-Warning "Multiple Users found with the same EmployeeNumber field, please correct this."
+                }
+                Write-Verbose ("Found {0} User(s)" -f (Measure-object -InputObject $output).count)
+                Write-Output $output
+            }
+            'mail'{
+                $queryString = "(&(Mail=$( $EmailAddress )))"
+                Write-Verbose "LDAP Mail Query String: $queryString"
+                $output = Get-ADUser -LDAPfilter $queryString -properties $props |
+                Select-Object -Property $outputFields
+                if ($output.length -eq 0) {
+                    Write-Error -Message "No user found by EmailAddress" -Exception (New-Object -TypeName Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException)
+                }
+                if ($output.length -gt 1) {
+                    Write-Error "Multiple Users found with the same EmailAddress field, please correct this."
                 }
                 Write-Verbose ("Found {0} User(s)" -f (Measure-object -InputObject $output).count)
                 Write-Output $output
