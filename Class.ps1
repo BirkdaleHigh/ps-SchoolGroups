@@ -1,10 +1,51 @@
 ﻿function Get-Class{
+    <#
+    .SYNOPSIS
+        Lists all the unique classes filtered from the MIS report.
+    .DESCRIPTION
+        References the module-level import of new-report and filters out the unique classes, used for input into other sync commands.
+    .EXAMPLE
+        PS C:\> get-class
+
+        8TE_Ar
+        8TE_Cs
+        8TE_Dr
+    #>
     $script:ClassList.foreach({
         [OrgClass]::new($psItem)
     })
 }
 
 function Test-Class {
+    <#
+    .SYNOPSIS
+        Compare the MIS and AD list of classes to find which is present and on what side
+    .DESCRIPTION
+        Used to evaluate which side of 2 lists (being MIS and AD) to input for New-Class or Remove-Class inside Sync-Class
+    .EXAMPLE
+        PS C:\> test-class
+        Check if all the results from Get-Class are present in the AD, Mis or both lists
+
+        Name      Source
+        ----      ------
+        8TC_Fr    Both
+        8TC_Gg    Both
+        8TC_Hi    Both
+        8TC_Mu    Both
+        8TC_Pe    Both
+        7SMB_Fr   Both
+        OrgClass  AD
+    .EXAMPLE
+        PS C:\> test-class -Filter AD
+        Show only the classes found in the AD but not from MIS. Results here should probably be deleted
+
+        Name     Source
+        ----     ------
+        OrgClass AD
+    .EXAMPLE
+        PS C:\> test-class -Filter MIS
+        No results means there's nothing out of sync i.e. Classes are both on the AD and MIS. Results here should probably be created
+    #>
     Param(
         # Show values only from the chosen source, <= MIS, => AD
         [parameter(ValueFromPipeline = $true,
@@ -87,8 +128,10 @@ function Sync-Class{
         Match AD Groups from the MIS source
     .DESCRIPTION
         Compare the MIS Sorce list of class groups and create AD groups or delete them.
+
+        Contains import like Get-Class, uses Test-Class and then New-Class or Remove-Class
     .INPUTS
-        [string[]] Class name
+        [string[]] Class name from Get-Class
     .OUTPUTS
         New class ad group objects
     #>
@@ -148,7 +191,8 @@ function Get-ClassADGroupMember{
     <#
     .SYNOPSIS
         Get AD Accounts that are in the class
-    .EXAMPLE
+    .DESCRIPTION
+        Effectively Wraps `Get-ADGroupMember <class> | Get-ADUser -properties EmployeeNumber`
     #>
     Param(
         [Parameter(Mandatory,Position=0)]

@@ -5,13 +5,17 @@ SHORT DESCRIPTION
     Tasks uses the commands from this module to perform functions that are common or require automating.
 
 LONG DESCRIPTION
-    There are commands in this module that are useful for inspection of data and testing effects that settings might change.
+    There's 2 sides to this module, Overall tasks to perform a job and also each function that is part of that job can be used separately
 
-EXAMPLES
-    Examples of how to use the module or how the subject feature works in practice.
+    TASKS
+    Sync Class Groups
+        1. New-Report (update information from sims report)
+        2. Sync-Class (Contains Get-Class, Test-Class, New-Class, Remove-Class)
 
-KEYWORDS
-    Terms or titles on which you might expect your users to search for the information in this topic.
+    Sync Class Group Members
+        1. New-Report (update information from sims report)
+        2. Sync-ClassMember ()
 
-SEE ALSO
-    Text-only references for further reading. Hyperlinks cannot work in the Windows PowerShell console.
+    The Form commands are a mirror of Class except with a different naming & OU pattern.
+
+    HELPERS

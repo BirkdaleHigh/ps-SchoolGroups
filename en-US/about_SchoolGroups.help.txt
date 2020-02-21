@@ -4,6 +4,8 @@ TOPIC
 SHORT DESCRIPTION
     This module is for managing the life cycle of groups and users in the school organization with respect to the MIS in use.
 
+    You will have come and edit this module as there's OU paths coded inside.
+
 LONG DESCRIPTION
     User accounts require a 1:1 mapping from MIS to AD in order to make groups and communication between IT and staff effective.
     This module contains a number of cmdlets to aid in the following goals
