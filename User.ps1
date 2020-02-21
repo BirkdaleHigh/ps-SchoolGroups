@@ -466,7 +466,7 @@ function New-EasyPassword {
         [ValidateRange(1, [int]::MaxValue)]
         [Alias('Min')]
         [int]
-        $MinLength = 6
+        $MinLength = 10
 
         , # Maximum Password Length
         [Parameter(Position = 1)]
@@ -487,8 +487,11 @@ function New-EasyPassword {
     if ($MinLength -gt $MaxLength) {
         Throw [System.Management.Automation.ParameterBindingException]::New("Max length($MaxLength) must be greater than the Minimum($MinLength)")
     }
-    if ($Prefix.length -ge $MinLength) {
-        Throw [System.Management.Automation.ParameterBindingException]::New("Prefix($Prefix) must be not be longer than the Minimum($MinLength) to add random characters")
+    if ($Prefix.length -ge $MaxLength-1) {
+        Throw [System.Management.Automation.ParameterBindingException]::New("Prefix($Prefix) must be not be longer than the Maximum($MAXLength) -1 to add random characters")
+    }
+    if ($Prefix.length -eq $MinLength) {
+        Throw [System.Management.Automation.ParameterBindingException]::New("Prefix($Prefix) must not be the same as the minimum length($MinLength) to add random characters")
     }
 
     if ($Prefix) {
